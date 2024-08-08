@@ -9,6 +9,14 @@ if __name__ == "__main__":
     annotations_path = '/home/rc-blackout/Documents/PhD/cadeiras/visao-computacional/ELSED-SSL/segments_annotations.csv'
     df = pd.read_csv(annotations_path)
     
+    # CONFIG THRESHOLDS
+    boundary_grad_th = 8000
+    boundary_angle_threshold_deg = 50
+    boundary_min_seg_len = 200
+    markings_grad_th = 8000
+    markings_angle_threshold_deg = 30
+    markings_min_seg_len = 50
+    
     mAP, TP_count, FP_count = 0, 0, 0
     
     for index, row in df.iterrows():
@@ -23,10 +31,19 @@ if __name__ == "__main__":
         line_points = analyzer.get_bresenham_line_points(segment)
         
         gx, gy = analyzer.get_gradients_from_line_points(original_img, line_points)
-        if np.linalg.norm(gy)>np.linalg.norm(gx): g = gy
-        else: g = gx
-        is_field_boundary = analyzer.check_boundary_classification(gy, len(line_points))
-        is_field_marking = analyzer.check_marking_classification(g, len(line_points))
+        #if np.linalg.norm(gy)>np.linalg.norm(gx): g = gy
+        #else: g = gx
+        g = gy # start only with gy
+        is_field_boundary = analyzer.check_boundary_classification(g = gy, 
+                                                                   l = len(line_points),
+                                                                   gradient_threshold = boundary_grad_th,
+                                                                   angle_threshold_deg = boundary_angle_threshold_deg,
+                                                                   min_segment_length = boundary_min_seg_len)
+        is_field_marking = analyzer.check_marking_classification(g = gy, 
+                                                                 l = len(line_points),
+                                                                 gradient_threshold = markings_grad_th,
+                                                                 angle_threshold_deg = markings_angle_threshold_deg,
+                                                                 min_segment_length = markings_min_seg_len)
         
         is_true_positive = (is_field_boundary and is_field_boundary_gt) or (is_field_marking and is_field_marking_gt)
         is_false_positive = (is_field_boundary and not is_field_boundary_gt) or (is_field_marking and not is_field_marking_gt)

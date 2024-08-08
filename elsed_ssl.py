@@ -137,6 +137,7 @@ if __name__ == "__main__":
         dbg_img = original_img.copy()
         
         segments, scores = pyelsed.detect(gs_img, 1, 30, 40)
+        gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
         
         for s in segments.astype(np.int32):
             line_points = get_bresenham_line_points(s)
@@ -151,16 +152,18 @@ if __name__ == "__main__":
             
             for p in line_points:
                 x, y = p
-                #dbg_img[y, x] = RED
+                gs_img[y, x] = RED
+                
                 if is_field_marking:
                     dbg_img[y, x] = RED
                 elif is_field_boundary:
                     dbg_img[y, x] = GREEN                    
                 else:
                     dbg_img[y, x] = BLACK
-                    
+        
+        cv2.imshow('elsed', gs_img)        
         cv2.imshow('elsed-ssl', dbg_img)
-        cv2.imshow('original', original_img)
+        #cv2.imshow('original', original_img)
         key = cv2.waitKey(0) & 0xFF
             
         if key==ord('q'):

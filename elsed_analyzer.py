@@ -4,7 +4,6 @@ import cv2
 from scipy.signal import convolve2d
 import random
 import os
-import pandas as pd
 
 class SegmentsAnalyzer():
     def __init__(self,
@@ -59,31 +58,45 @@ class SegmentsAnalyzer():
         return np.array(points)
 
     def get_gradients_from_line_points(self, src, line_points):
-        operator_x = 1/4*np.array([[-1, 0, 1],
-                                [-2, 0, 2],
-                                [-1, 0, 1]])
-        operator_y = 1/4*np.array([[1, 2, 1],
-                                [0, 0, 0],
-                                [-1, -2, -1]])
+        operator_x = 1/4 * np.array([[-1, 0, 1],
+                                     [-2, 0, 2],
+                                     [-1, 0, 1]])
+        operator_y = 1/4 * np.array([[1, 2, 1],
+                                     [0, 0, 0],
+                                     [-1, -2, -1]])
         
-        g_x = []
-        g_y = []
+        # Initialize lists to store pixel values for the 3x3 windows
+        B_pixels = []
+        G_pixels = []
+        R_pixels = []
+
+        # Iterate over the desired pixels and collect the 3x3 window pixel values
         for pixel in line_points[2:-2]:
             x, y = pixel
             window = src[y-1:y+2, x-1:x+2]
             B, G, R = window[:,:,0], window[:,:,1], window[:,:,2]
-            convolved_Bx = convolve2d(B, operator_x, mode='valid')[0,0]
-            convolved_Gx = convolve2d(G, operator_x, mode='valid')[0,0]
-            convolved_Rx = convolve2d(R, operator_x, mode='valid')[0,0]
-            convolved_By = convolve2d(B, operator_y, mode='valid')[0,0]
-            convolved_Gy = convolve2d(G, operator_y, mode='valid')[0,0]
-            convolved_Ry = convolve2d(R, operator_y, mode='valid')[0,0]
-            g_BGRx = np.array([convolved_Bx, convolved_Gx, convolved_Rx])     
-            g_BGRy = np.array([convolved_By, convolved_Gy, convolved_Ry])     
-            g_x.append(g_BGRx)
-            g_y.append(g_BGRy)
+            B_pixels.append(B)
+            G_pixels.append(G)
+            R_pixels.append(R)
+
+        # Compute the mean of the collected pixel values
+        mean_B = np.mean(B_pixels, axis=0)
+        mean_G = np.mean(G_pixels, axis=0)
+        mean_R = np.mean(R_pixels, axis=0)
         
-        return np.mean(g_x, axis=0), np.mean(g_y, axis=0)
+        # Apply the convolution to the mean windows
+        convolved_Bx = convolve2d(mean_B, operator_x, mode='valid')[0,0]
+        convolved_Gx = convolve2d(mean_G, operator_x, mode='valid')[0,0]
+        convolved_Rx = convolve2d(mean_R, operator_x, mode='valid')[0,0]
+        convolved_By = convolve2d(mean_B, operator_y, mode='valid')[0,0]
+        convolved_Gy = convolve2d(mean_G, operator_y, mode='valid')[0,0]
+        convolved_Ry = convolve2d(mean_R, operator_y, mode='valid')[0,0]
+        
+        # Create gradient arrays
+        g_BGRx = np.array([convolved_Bx, convolved_Gx, convolved_Rx])     
+        g_BGRy = np.array([convolved_By, convolved_Gy, convolved_Ry])     
+        
+        return g_BGRx, g_BGRy
 
     def get_img_from_dataset(self, dataset_path='/home/rc-blackout/ssl-navigation-dataset', scenario='rnd', round=2, img_nr=100, gray_scale=False):
         img_path = f"{dataset_path}/data/{scenario}_0{round}/cam/{img_nr}.png"
@@ -108,10 +121,8 @@ class SegmentsAnalyzer():
         
         return img, img_path, [scenario, round, img_nr]
 
-    def check_boundary_classification(self, g, l):
-        gradient_threshold = 8000
-        angle_threshold = np.deg2rad(50)
-        min_segment_length = 200
+    def check_boundary_classification(self, g, l, gradient_threshold=8000, angle_threshold_deg=50, min_segment_length=200):
+        angle_threshold = np.deg2rad(angle_threshold_deg)
         projection = np.dot(g, self.GREEN)
         proj_angle = np.arccos(projection/(np.linalg.norm(g)*np.linalg.norm(self.GREEN)))
         is_field_boundary = (projection>gradient_threshold and \
@@ -119,10 +130,8 @@ class SegmentsAnalyzer():
                             l>min_segment_length)
         return is_field_boundary
 
-    def check_marking_classification(self, g, l):
-        gradient_threshold = 8000
-        angle_threshold = np.deg2rad(30)
-        min_segment_length = 50
+    def check_marking_classification(self, g, l, gradient_threshold=8000, angle_threshold_deg=30, min_segment_length=50):
+        angle_threshold = np.deg2rad(angle_threshold_deg)
         projection = np.dot(g, self.GREEN-self.WHITE)
         proj_angle = np.arccos(projection/(np.linalg.norm(g)*np.linalg.norm(self.GREEN-self.WHITE)))
         if proj_angle>np.pi/2: proj_angle = np.pi-proj_angle
