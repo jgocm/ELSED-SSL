@@ -57,6 +57,11 @@ class SegmentsAnalyzer():
 
         return np.array(points)
 
+    def is_pixel_window_valid(self, pixel_x, pixel_y, img_height, img_width, window_size=3):
+        x_is_valid = (pixel_x-(window_size-1)/2 >= 0) and (pixel_x+(window_size+1)/2 <= img_width)
+        y_is_valid = (pixel_y-(window_size-1)/2 >= 0) and (pixel_y+(window_size+1)/2 <= img_height)
+        return x_is_valid and y_is_valid
+
     def get_gradients_from_line_points(self, src, line_points):
         operator_x = 1/4 * np.array([[-1, 0, 1],
                                      [-2, 0, 2],
@@ -74,6 +79,10 @@ class SegmentsAnalyzer():
         for pixel in line_points[2:-2]:
             x, y = pixel
             window = src[y-1:y+2, x-1:x+2]
+            # sometimes the position on the image might not be able to compute this window
+            # it is easier to check the result of the window than use the is_pixel_window_valid()
+            if window.shape[0]==0:
+                continue
             B, G, R = window[:,:,0], window[:,:,1], window[:,:,2]
             B_pixels.append(B)
             G_pixels.append(G)
@@ -120,6 +129,29 @@ class SegmentsAnalyzer():
             img, img_path = self.get_img_from_dataset(dataset_path, scenario, round, img_nr, False)
         
         return img, img_path, [scenario, round, img_nr]
+
+    def get_grad_similarity(self, grad, color1, color2):
+        color_transition = color2-color1
+        projection = np.dot(grad, color_transition)
+        proj_angle_rad = np.arccos(projection/(np.linalg.norm(grad)*np.linalg.norm(projection)))
+        return projection, proj_angle_rad
+
+    def check_one_side_line_classification(self, grad, seg_length, grad_threshold, angle_threshold_deg, min_seg_length, color1, color2):
+        projection, proj_angle_rad = self.get_grad_similarity(grad, color1, color2)
+        angle_threshold_rad = np.deg2rad(angle_threshold_deg)
+        is_field_boundary = (projection>grad_threshold and \
+                            np.abs(proj_angle_rad)<angle_threshold_rad and \
+                            seg_length>min_seg_length)
+        return is_field_boundary
+
+    def check_two_sides_line_classification(self, grad, seg_length, grad_threshold, angle_threshold_deg, min_seg_length, color1, color2):
+        projection, proj_angle_rad = self.get_grad_similarity(grad, color1, color2)
+        angle_threshold_rad = np.deg2rad(angle_threshold_deg)
+        if proj_angle>np.pi/2: proj_angle = np.pi-proj_angle
+        is_field_marking = (np.abs(projection)>grad_threshold and \
+                            np.abs(proj_angle)<angle_threshold_rad and 
+                            seg_length>min_seg_length)
+        return is_field_marking
 
     def check_boundary_classification(self, g, l, gradient_threshold=8000, angle_threshold_deg=50, min_segment_length=200):
         angle_threshold = np.deg2rad(angle_threshold_deg)

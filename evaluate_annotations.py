@@ -6,16 +6,17 @@ from elsed_analyzer import SegmentsAnalyzer
 
 if __name__ == "__main__":
     analyzer = SegmentsAnalyzer(pyelsed)
-    annotations_path = '/home/rc-blackout/Documents/PhD/cadeiras/visao-computacional/ELSED-SSL/segments_annotations.csv'
+    annotations_path = 'annotations/segments_annotations.csv'
+    boundary_thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
+    marking_thresholds_path = 'annotations/optimal_marking_thresholds.npy'
     df = pd.read_csv(annotations_path)
     
+    boundary_thresholds = np.load(boundary_thresholds_path)
+    marking_thresholds = np.load(marking_thresholds_path)
+
     # CONFIG THRESHOLDS
-    boundary_grad_th = 8000
-    boundary_angle_threshold_deg = 50
-    boundary_min_seg_len = 200
-    markings_grad_th = 8000
-    markings_angle_threshold_deg = 30
-    markings_min_seg_len = 50
+    boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
+    markings_grad_th, markings_angle_threshold_deg, markings_min_seg_len = marking_thresholds
     
     mAP, TP_count, FP_count = 0, 0, 0
     
@@ -33,7 +34,7 @@ if __name__ == "__main__":
         gx, gy = analyzer.get_gradients_from_line_points(original_img, line_points)
         #if np.linalg.norm(gy)>np.linalg.norm(gx): g = gy
         #else: g = gx
-        g = gy # start only with gy
+        #g = gy # start only with gy
         is_field_boundary = analyzer.check_boundary_classification(g = gy, 
                                                                    l = len(line_points),
                                                                    gradient_threshold = boundary_grad_th,
@@ -48,7 +49,7 @@ if __name__ == "__main__":
         is_true_positive = (is_field_boundary and is_field_boundary_gt) or (is_field_marking and is_field_marking_gt)
         is_false_positive = (is_field_boundary and not is_field_boundary_gt) or (is_field_marking and not is_field_marking_gt)
         
-        draw_color = analyzer.BLACK
+        draw_color = analyzer.RED
         
         if is_true_positive:
             draw_color = analyzer.GREEN
@@ -68,10 +69,15 @@ if __name__ == "__main__":
             mAP = TP_count/(TP_count+FP_count)
         
         cv2.imshow('elsed segments', dbg_img)
-        key = cv2.waitKey(100) & 0xFF
+        if is_false_positive:
+            print(f'            Boundary  Marking')
+            print(f'Inference:    {is_field_boundary},   {is_field_marking}')
+            print(f'Ground truth: {is_field_boundary_gt},   {is_field_marking_gt}')
+            key = cv2.waitKey(0) & 0xFF
+        else:
+            key = cv2.waitKey(1) & 0xFF
         
         if key==ord('q'):
-            print(f'mAP: {mAP}')
-            quit()
+            break
     
-    print(f'mAP: {mAP}')                
+    print(f'mAP: {mAP}, TP: {TP_count}, FP: {FP_count}, total lines: {index+1}')
