@@ -35,7 +35,21 @@ py::tuple compute_elsed(const py::array &py_img,
 ) {
 
   py::buffer_info info = py_img.request();
-  cv::Mat img(info.shape[0], info.shape[1], CV_8UC1, (uint8_t *) info.ptr);
+
+  cv::Mat img;  // Declare the img variable before the if statement
+
+  if (info.ndim == 2) {
+      // Grayscale image
+      // std::cout << "The image is grayscale." << std::endl;
+      img = cv::Mat(info.shape[0], info.shape[1], CV_8UC1, (uint8_t *) info.ptr);
+  } else if (info.ndim == 3 && info.shape[2] == 3) {
+      // BGR image
+      // std::cout << "The image is BGR." << std::endl;
+      img = cv::Mat(info.shape[0], info.shape[1], CV_8UC3, (uint8_t *) info.ptr);
+  } else {
+      std::cerr << "Unexpected image format!" << std::endl;
+  }
+
   ELSEDParams params;
 
   params.sigma = sigma;

@@ -125,7 +125,7 @@ def check_marking_classification(g, l):
     return is_field_marking
 
 if __name__ == "__main__":
-    dataset_path = '/home/rc-blackout/ssl-navigation-dataset'
+    dataset_path = '/home/joao-dt/ssl-navigation-dataset'
     scenarios = ['rnd', 'sqr', 'igs']
     rounds = 3
     max_img_nr = 2000
