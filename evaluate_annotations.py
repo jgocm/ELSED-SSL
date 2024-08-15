@@ -12,7 +12,9 @@ if __name__ == "__main__":
     df = pd.read_csv(annotations_path)
     
     boundary_thresholds = np.load(boundary_thresholds_path)
+    print(boundary_thresholds)
     marking_thresholds = np.load(marking_thresholds_path)
+    print(marking_thresholds)
 
     # CONFIG THRESHOLDS
     boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
