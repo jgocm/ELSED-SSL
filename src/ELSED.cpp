@@ -34,8 +34,10 @@ const LineDetectionExtraInfo &ELSED::getImgInfo() const {
 void ELSED::processImage(const cv::Mat &_image) {
   // Check that the image is a grayscale image
   cv::Mat image;
+  cv::Mat BGR_image;
   switch (_image.channels()) {
     case 3:
+      BGR_image = _image;
       cv::cvtColor(_image, image, cv::COLOR_BGR2GRAY);
       break;
     case 4:
@@ -72,6 +74,7 @@ void ELSED::processImage(const cv::Mat &_image) {
     computeAnchorPoints(imgInfo->dirImg,
                         imgInfo->gImgWO,
                         imgInfo->gImg,
+                        BGR_image,
                         params.scanIntervals,
                         anchorTh,
                         anchors);
@@ -137,9 +140,165 @@ LineDetectionExtraInfoPtr ELSED::computeGradients(const cv::Mat &srcImg, short g
   return dstInfo;
 }
 
+bool extractWindowAndChannels(const cv::Mat &src, int x, int y, cv::Mat &B, cv::Mat &G, cv::Mat &R) {
+  int imageWidth = src.cols;
+  int imageHeight = src.rows;
+    
+  // Check if the pixel is too close to the border to form a 3x3 window
+  if (x <= 0 || x >= imageWidth - 1 || y <= 0 || y >= imageHeight - 1) {
+      return false; // Window is invalid
+  }
+
+  // Extract the 3x3 window
+  cv::Rect windowRect(x - 1, y - 1, 3, 3);
+  cv::Mat window = src(windowRect);
+
+  // Split the window into B, G, R channels
+  std::vector<cv::Mat> channels(3);
+  cv::split(window, channels);
+
+  B = channels[0];
+  G = channels[1];
+  R = channels[2];
+
+  return true; // Window is valid
+}
+
+std::pair<std::array<float, 3>, std::array<float, 3>> computeGradientsBGR(const cv::Mat &B, const cv::Mat &G, const cv::Mat &R) {
+  // Define the convolution operators
+  cv::Mat operator_x = (cv::Mat_<float>(3, 3) << -1, 0, 1,
+                                                  -2, 0, 2,
+                                                  -1, 0, 1) / 4.0;
+  cv::Mat operator_y = (cv::Mat_<float>(3, 3) <<  1, 2, 1,
+                                                  0, 0, 0,
+                                                  -1, -2, -1) / 4.0;
+
+  // Convert B, G, R to CV_32F to match operator type
+  cv::Mat B_f, G_f, R_f;
+  B.convertTo(B_f, CV_32F);
+  G.convertTo(G_f, CV_32F);
+  R.convertTo(R_f, CV_32F);
+
+  // Perform the convolution for each channel using filter2D
+  cv::Mat convolved_Bx, convolved_Gx, convolved_Rx;
+  cv::Mat convolved_By, convolved_Gy, convolved_Ry;
+
+  cv::filter2D(B_f, convolved_Bx, CV_32F, operator_x);
+  cv::filter2D(G_f, convolved_Gx, CV_32F, operator_x);
+  cv::filter2D(R_f, convolved_Rx, CV_32F, operator_x);
+
+  cv::filter2D(B_f, convolved_By, CV_32F, operator_y);
+  cv::filter2D(G_f, convolved_Gy, CV_32F, operator_y);
+  cv::filter2D(R_f, convolved_Ry, CV_32F, operator_y);
+
+  // Extract the central pixel value from the convolved images
+  // Assuming the input windows are 3x3, the central pixel is at (1,1)
+  float g_BGRx[3], g_BGRy[3];
+  g_BGRx[0] = convolved_Bx.at<float>(1, 1);
+  g_BGRx[1] = convolved_Gx.at<float>(1, 1);
+  g_BGRx[2] = convolved_Rx.at<float>(1, 1);
+
+  g_BGRy[0] = convolved_By.at<float>(1, 1);
+  g_BGRy[1] = convolved_Gy.at<float>(1, 1);
+  g_BGRy[2] = convolved_Ry.at<float>(1, 1);
+
+  return {std::array<float, 3>{g_BGRx[0], g_BGRx[1], g_BGRx[2]}, std::array<float, 3>{g_BGRy[0], g_BGRy[1], g_BGRy[2]}};
+}
+
+bool checkBoundaryClassification(const std::array<float, 3> &g_BGRy, 
+                                 float gradient_threshold = 6288.33f, 
+                                 float angle_threshold_deg = 52.0f) {
+  // Define the GREEN vector as [0, 255, 0]
+  std::array<float, 3> GREEN = {0.0f, 255.0f, 0.0f};
+
+  // Convert angle threshold to radians
+  float angle_threshold = angle_threshold_deg * 3.1415 / 180;
+
+  // Compute the dot product of g_BGRy and GREEN
+  float projection = g_BGRy[0] * GREEN[0] + g_BGRy[1] * GREEN[1] + g_BGRy[2] * GREEN[2];
+
+  // Compute the norms of g_BGRy and GREEN
+  float norm_g = std::sqrt(g_BGRy[0] * g_BGRy[0] + g_BGRy[1] * g_BGRy[1] + g_BGRy[2] * g_BGRy[2]);
+  float norm_GREEN = std::sqrt(GREEN[0] * GREEN[0] + GREEN[1] * GREEN[1] + GREEN[2] * GREEN[2]);
+
+  // Compute the angle between g_BGRy and GREEN
+  float proj_angle = std::acos(projection / (norm_g * norm_GREEN));
+
+  // Check if the pixel is a field boundary
+  bool is_field_boundary = (projection > gradient_threshold && std::abs(proj_angle) < angle_threshold);
+
+  return is_field_boundary;
+}
+
+bool checkMarkingClassification(const std::array<float, 3> &g_BGR,
+                                 float gradient_threshold = 7575.37f, 
+                                 float angle_threshold_deg = 32.38f) {
+    // Define the GREEN and WHITE vectors
+    std::array<float, 3> GREEN = {0.0f, 255.0f, 0.0f}; // RGB for GREEN
+    std::array<float, 3> WHITE = {255.0f, 255.0f, 255.0f}; // RGB for WHITE
+
+    // Compute GREEN - WHITE
+    std::array<float, 3> GREEN_MINUS_WHITE = {
+        GREEN[0] - WHITE[0],
+        GREEN[1] - WHITE[1],
+        GREEN[2] - WHITE[2]
+    };
+
+    // Convert angle threshold to radians
+    float angle_threshold = angle_threshold_deg * 3.1415 / 180;
+
+    // Compute the dot product of g_BGR and GREEN_MINUS_WHITE
+    float projection = g_BGR[0] * GREEN_MINUS_WHITE[0] +
+                       g_BGR[1] * GREEN_MINUS_WHITE[1] +
+                       g_BGR[2] * GREEN_MINUS_WHITE[2];
+
+    // Compute the norms of g_BGR and GREEN_MINUS_WHITE
+    float norm_g = std::sqrt(g_BGR[0] * g_BGR[0] + 
+                             g_BGR[1] * g_BGR[1] + 
+                             g_BGR[2] * g_BGR[2]);
+    float norm_GREEN_MINUS_WHITE = std::sqrt(GREEN_MINUS_WHITE[0] * GREEN_MINUS_WHITE[0] +
+                                             GREEN_MINUS_WHITE[1] * GREEN_MINUS_WHITE[1] +
+                                             GREEN_MINUS_WHITE[2] * GREEN_MINUS_WHITE[2]);
+
+    // Compute the angle between g_BGR and GREEN_MINUS_WHITE
+    float proj_angle = std::acos(projection / (norm_g * norm_GREEN_MINUS_WHITE));
+
+    // Adjust the angle if it's greater than 90 degrees
+    if (proj_angle > CV_PI / 2.0f) {
+        proj_angle = CV_PI - proj_angle;
+    }
+
+    // Check if the pixel is a field marking
+    bool is_field_marking = (std::abs(projection) > gradient_threshold &&
+                             std::abs(proj_angle) < angle_threshold);
+
+    return is_field_marking;
+}
+
+bool isFieldFeature(const cv::Mat &B, const cv::Mat &G, const cv::Mat &R) {
+    // Compute gradients
+    auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
+
+    // Check boundary classification for g_BGRy
+    bool is_boundary = checkBoundaryClassification(g_BGRy);
+    // std::cout << "Boundary classification y-axis: " << std::boolalpha << is_boundary << std::endl;
+
+    // Check marking classification for g_BGRy and g_BGRx
+    bool is_marking_y = checkMarkingClassification(g_BGRx);
+    // std::cout << "Marking classification x-axis: " << std::boolalpha << is_marking_y << std::endl;
+
+    // Check marking classification for g_BGRy and g_BGRx
+    bool is_marking_x = checkMarkingClassification(g_BGRy);
+    // std::cout << "Marking classification y-axis: " << std::boolalpha << is_marking_x << std::endl;
+
+    bool result = is_boundary || is_marking_y || is_marking_x;
+    return result;
+}
+
 inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
                                        const cv::Mat &gradImageWO,
                                        const cv::Mat &gradImage,
+                                       const cv::Mat &BGR_image,
                                        int scanInterval,
                                        int anchorThresh,
                                        std::vector<Pixel> &anchorPoints) {  // NOLINT
@@ -150,6 +309,7 @@ inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
   // Get pointers to the thresholded gradient image and to the direction image
   const auto *gradImg = gradImage.ptr<int16_t>();
   const auto *dirImg = dirImage.ptr<uint8_t>();
+  cv::Mat B, G, R;
 
   // Extract the anchors in the gradient image, store into a vector
   unsigned int pixelNum = imageWidth * imageHeight;
@@ -173,6 +333,8 @@ inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
         // We compare with the top and bottom pixel gradients
         if (gradImg[indexInArray] >= gradImg[indexInArray - imageWidth] + anchorThresh &&
             gradImg[indexInArray] >= gradImg[indexInArray + imageWidth] + anchorThresh) {
+          if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
+          if (!isFieldFeature(B, G, R)) continue;
           anchorPoints[nAnchors].x = w;
           anchorPoints[nAnchors].y = h;
           nAnchors++;
@@ -182,6 +344,8 @@ inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
         // We compare with the left and right pixel gradients
         if (gradImg[indexInArray] >= gradImg[indexInArray - 1] + anchorThresh &&
             gradImg[indexInArray] >= gradImg[indexInArray + 1] + anchorThresh) {
+          if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
+          if (!isFieldFeature(B, G, R)) continue;
           anchorPoints[nAnchors].x = w;
           anchorPoints[nAnchors].y = h;
           nAnchors++;

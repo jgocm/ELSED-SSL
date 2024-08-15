@@ -22,7 +22,7 @@ struct ELSEDParams {
   uint8_t anchorThreshold = 8;
   // Anchor testing can be performed at different scan intervals, i.e.,
   // every row/column, every second row/column
-  unsigned int scanIntervals = 2;
+  unsigned int scanIntervals = 10;
 
   // Minimum line segment length
   int minLineLen = 15;
@@ -83,6 +83,7 @@ class ELSED {
   static void computeAnchorPoints(const cv::Mat &dirImage,
                                   const cv::Mat &gradImageWO,
                                   const cv::Mat &gradImage,
+                                  const cv::Mat &BGR_image,
                                   int scanInterval,
                                   int anchorThresh,
                                   std::vector<Pixel> &anchorPoints);  // NOLINT
