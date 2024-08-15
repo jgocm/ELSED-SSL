@@ -102,9 +102,9 @@ def get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr):
     return img, img_path, [scenario, round, img_nr]
 
 def check_boundary_classification(g, l):
-    gradient_threshold = 8000
-    angle_threshold = np.deg2rad(50)
-    min_segment_length = 200
+    gradient_threshold = 6288.33
+    angle_threshold = np.deg2rad(52)
+    min_segment_length = 84
     projection = np.dot(g, GREEN)
     proj_angle = np.arccos(projection/(np.linalg.norm(g)*np.linalg.norm(GREEN)))
     is_field_boundary = (projection>gradient_threshold and \
@@ -113,9 +113,9 @@ def check_boundary_classification(g, l):
     return is_field_boundary
 
 def check_marking_classification(g, l):
-    gradient_threshold = 8000
-    angle_threshold = np.deg2rad(30)
-    min_segment_length = 50
+    gradient_threshold = 7575.37
+    angle_threshold = np.deg2rad(32)
+    min_segment_length = 57
     projection = np.dot(g, GREEN-WHITE)
     proj_angle = np.arccos(projection/(np.linalg.norm(g)*np.linalg.norm(GREEN-WHITE)))
     if proj_angle>np.pi/2: proj_angle = np.pi-proj_angle
@@ -136,17 +136,20 @@ if __name__ == "__main__":
         #dbg_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2RGB)
         dbg_img = original_img.copy()
         
-        segments, scores = pyelsed.detect(gs_img, 1, 30, 40)
+        import time
+        t0 = time.time()
+        segments, scores = pyelsed.detect(original_img, 1, 30, 100)
+        print(f'elapsed_time: {time.time() - t0}')
         gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
         
         for s in segments.astype(np.int32):
             line_points = get_bresenham_line_points(s)
-                
+            
             gx, gy = get_gradients_from_line_points(original_img, line_points)
             
             if np.linalg.norm(gy)>np.linalg.norm(gx): g = gy
             else: g = gx
-                        
+
             is_field_boundary = check_boundary_classification(g, len(line_points))
             is_field_marking = check_marking_classification(g, len(line_points))
             
