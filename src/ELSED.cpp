@@ -405,6 +405,11 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
     // LOGD << "Managing new Anchor point: " << anchorPoint;
     indexInArray = anchorPoint.y * imageWidth + anchorPoint.x;
 
+    // TODO: MOVE FIELD FEATURE CLASSIFICATION TO HERE
+    // 1. Get window from anchor position in the BGR image
+    // 2. If window is ont available: continue
+    // 3. If anchor is not field feature: continue
+
     if (pEdgeImg[indexInArray]) {
       // If anchor i is already been an edge pixel
       continue;
