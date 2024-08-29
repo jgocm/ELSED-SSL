@@ -99,7 +99,7 @@ void ELSED::processImage(const cv::Mat &_image) {
                                         params.junctionEigenvalsTh,
                                         params.junctionAngleTh);
 
-  drawAnchorPoints(imgInfo->dirImg.ptr(), anchors, edgeImg.ptr());
+  drawAnchorPoints(imgInfo->dirImg.ptr(), anchors, BGR_image, edgeImg.ptr());
 }
 
 LineDetectionExtraInfoPtr ELSED::computeGradients(const cv::Mat &srcImg, short gradientTh) {
@@ -333,8 +333,8 @@ inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
         // We compare with the top and bottom pixel gradients
         if (gradImg[indexInArray] >= gradImg[indexInArray - imageWidth] + anchorThresh &&
             gradImg[indexInArray] >= gradImg[indexInArray + imageWidth] + anchorThresh) {
-          if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
-          if (!isFieldFeature(B, G, R)) continue;
+          //if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
+          //if (!isFieldFeature(B, G, R)) continue;
           anchorPoints[nAnchors].x = w;
           anchorPoints[nAnchors].y = h;
           nAnchors++;
@@ -344,8 +344,8 @@ inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
         // We compare with the left and right pixel gradients
         if (gradImg[indexInArray] >= gradImg[indexInArray - 1] + anchorThresh &&
             gradImg[indexInArray] >= gradImg[indexInArray + 1] + anchorThresh) {
-          if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
-          if (!isFieldFeature(B, G, R)) continue;
+          //if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
+          //if (!isFieldFeature(B, G, R)) continue;
           anchorPoints[nAnchors].x = w;
           anchorPoints[nAnchors].y = h;
           nAnchors++;
@@ -382,12 +382,14 @@ inline float blerp(float c00, float c10, float c01, float c11, float tx, float t
 
 void ELSED::drawAnchorPoints(const uint8_t *dirImg,
                              const std::vector<Pixel> &anchorPoints,
+                             const cv::Mat &BGR_image,
                              uint8_t *pEdgeImg) {
   assert(imgInfo && imgInfo->imageWidth > 0 && imgInfo->imageHeight > 0);
   assert(!imgInfo->gImg.empty() && !imgInfo->dirImg.empty() && pEdgeImg);
   assert(drawer);
   assert(!edgeImg.empty());
 
+  cv::Mat B, G, R;
   int imageWidth = imgInfo->imageWidth;
   int imageHeight = imgInfo->imageHeight;
   bool expandHorizontally;
@@ -405,18 +407,16 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
     // LOGD << "Managing new Anchor point: " << anchorPoint;
     indexInArray = anchorPoint.y * imageWidth + anchorPoint.x;
 
-    // TODO: MOVE FIELD FEATURE CLASSIFICATION TO HERE
-    // 1. Get window from anchor position in the BGR image
-    // 2. If window is ont available: continue
-    // 3. If anchor is not field feature: continue
-
     if (pEdgeImg[indexInArray]) {
       // If anchor i is already been an edge pixel
       continue;
     }
+    if (!extractWindowAndChannels(BGR_image, anchorPoint.x, anchorPoint.y, B, G, R)) continue;
+    if (!isFieldFeature(B, G, R)) continue;
 
     // If the direction of this pixel is horizontal, then go left and right.
     expandHorizontally = dirImg[indexInArray] == UPM_EDGE_HORIZONTAL;
+    
 
     /****************** First side Expanding (Right or Down) ***************/
     // Select the first side towards we want to move. If the gradient points
