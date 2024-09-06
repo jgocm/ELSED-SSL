@@ -191,7 +191,6 @@ segAngle(const Segment &s) {
     return std::atan2(s[1] - s[3], s[0] - s[2]);
 }
 
-
 /**
  * Returns the line pixels using the Bresenham Algorithm:
  * https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm

@@ -4,6 +4,8 @@ import cv2
 from scipy.signal import convolve2d
 import random
 import os
+import time
+
 
 WHITE = np.array([255, 255, 255])
 BLUE =  np.array([255, 0, 0])
@@ -137,7 +139,6 @@ if __name__ == "__main__":
         #dbg_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2RGB)
         dbg_img = original_img.copy()
         
-        import time
         t0 = time.time()
         segments, scores, labels = pyelsed.detect(original_img, 1, 30, 150)
         print(f'elapsed_time: {time.time() - t0}')
