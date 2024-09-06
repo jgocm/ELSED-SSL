@@ -131,6 +131,7 @@ if __name__ == "__main__":
     max_img_nr = 2000
     while True:
         original_img, img_path, img_details = get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
+        #original_img, img_path = get_img_from_dataset(dataset_path, 'rnd', 2, 1566)
         print(f"Img: {img_path}")
         gs_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
         #dbg_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2RGB)
@@ -138,7 +139,7 @@ if __name__ == "__main__":
         
         import time
         t0 = time.time()
-        segments, scores = pyelsed.detect(original_img, 1, 30, 100)
+        segments, scores = pyelsed.detect(original_img, 1, 30, 150)
         print(f'elapsed_time: {time.time() - t0}')
         gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
         
