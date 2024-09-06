@@ -4,6 +4,8 @@ import cv2
 from scipy.signal import convolve2d
 import random
 import os
+import time
+
 
 WHITE = np.array([255, 255, 255])
 BLUE =  np.array([255, 0, 0])
@@ -131,28 +133,31 @@ if __name__ == "__main__":
     max_img_nr = 2000
     while True:
         original_img, img_path, img_details = get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
+        #original_img, img_path = get_img_from_dataset(dataset_path, 'rnd', 2, 1566)
         print(f"Img: {img_path}")
         gs_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
         #dbg_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2RGB)
         dbg_img = original_img.copy()
         
-        import time
         t0 = time.time()
-        segments, scores = pyelsed.detect(original_img, 1, 30, 100)
+        segments, scores, labels = pyelsed.detect(original_img, 1, 30, 150)
         print(f'elapsed_time: {time.time() - t0}')
         gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
         
-        for s in segments.astype(np.int32):
+        for s, label in zip(segments.astype(np.int32), labels):
             line_points = get_bresenham_line_points(s)
             
-            gx, gy = get_gradients_from_line_points(original_img, line_points)
+            #gx, gy = get_gradients_from_line_points(original_img, line_points)
             
-            if np.linalg.norm(gy)>np.linalg.norm(gx): g = gy
-            else: g = gx
+            #if np.linalg.norm(gy)>np.linalg.norm(gx): g = gy
+            #else: g = gx
 
-            is_field_boundary = check_boundary_classification(g, len(line_points))
-            is_field_marking = check_marking_classification(g, len(line_points))
+            #is_field_boundary = check_boundary_classification(g, len(line_points))
+            #is_field_marking = check_marking_classification(g, len(line_points))
             
+            is_field_boundary = (label==1)
+            is_field_marking = (label==2)
+
             for p in line_points:
                 x, y = p
                 gs_img[y, x] = RED

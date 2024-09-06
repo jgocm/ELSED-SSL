@@ -9,18 +9,21 @@ using namespace upm;
 
 // Converts C++ descriptors to Numpy
 inline py::tuple salient_segments_to_py(const upm::SalientSegments &ssegs) {
-  py::array_t<float> scores(ssegs.size());
+  py::array_t<float> scores({int(ssegs.size()), 1});
+  py::array_t<float> labels({int(ssegs.size()), 1});
   py::array_t<float> segments({int(ssegs.size()), 4});
   float *p_scores = scores.mutable_data();
+  float *p_labels = labels.mutable_data();
   float *p_segments = segments.mutable_data();
   for (int i = 0; i < ssegs.size(); i++) {
     p_scores[i] = ssegs[i].salience;
+    p_labels[i] = ssegs[i].classification;
     p_segments[i * 4] = ssegs[i].segment[0];
     p_segments[i * 4 + 1] = ssegs[i].segment[1];
     p_segments[i * 4 + 2] = ssegs[i].segment[2];
     p_segments[i * 4 + 3] = ssegs[i].segment[3];
   }
-  return pybind11::make_tuple(segments, scores);
+  return pybind11::make_tuple(segments, scores, labels);
 }
 
 py::tuple compute_elsed(const py::array &py_img,

@@ -99,7 +99,7 @@ void ELSED::processImage(const cv::Mat &_image) {
                                         params.junctionEigenvalsTh,
                                         params.junctionAngleTh);
 
-  drawAnchorPoints(imgInfo->dirImg.ptr(), anchors, edgeImg.ptr());
+  drawAnchorPoints(imgInfo->dirImg.ptr(), anchors, BGR_image, edgeImg.ptr());
 }
 
 LineDetectionExtraInfoPtr ELSED::computeGradients(const cv::Mat &srcImg, short gradientTh) {
@@ -215,17 +215,24 @@ bool checkBoundaryClassification(const std::array<float, 3> &g_BGRy,
   float angle_threshold = angle_threshold_deg * 3.1415 / 180;
 
   // Compute the dot product of g_BGRy and GREEN
-  float projection = g_BGRy[0] * GREEN[0] + g_BGRy[1] * GREEN[1] + g_BGRy[2] * GREEN[2];
+  float projection = -(g_BGRy[0] * GREEN[0] + 
+                       g_BGRy[1] * GREEN[1] + 
+                       g_BGRy[2] * GREEN[2]);
 
   // Compute the norms of g_BGRy and GREEN
-  float norm_g = std::sqrt(g_BGRy[0] * g_BGRy[0] + g_BGRy[1] * g_BGRy[1] + g_BGRy[2] * g_BGRy[2]);
-  float norm_GREEN = std::sqrt(GREEN[0] * GREEN[0] + GREEN[1] * GREEN[1] + GREEN[2] * GREEN[2]);
+  float norm_g = std::sqrt(g_BGRy[0] * g_BGRy[0] + 
+                           g_BGRy[1] * g_BGRy[1] + 
+                           g_BGRy[2] * g_BGRy[2]);
+  float norm_GREEN = std::sqrt(GREEN[0] * GREEN[0] + 
+                               GREEN[1] * GREEN[1] + 
+                               GREEN[2] * GREEN[2]);
 
   // Compute the angle between g_BGRy and GREEN
   float proj_angle = std::acos(projection / (norm_g * norm_GREEN));
 
   // Check if the pixel is a field boundary
-  bool is_field_boundary = (projection > gradient_threshold && std::abs(proj_angle) < angle_threshold);
+  bool is_field_boundary = (projection > gradient_threshold && 
+                            std::abs(proj_angle) < angle_threshold);
 
   return is_field_boundary;
 }
@@ -275,24 +282,23 @@ bool checkMarkingClassification(const std::array<float, 3> &g_BGR,
     return is_field_marking;
 }
 
-bool isFieldFeature(const cv::Mat &B, const cv::Mat &G, const cv::Mat &R) {
+int isFieldFeature(const cv::Mat &B, const cv::Mat &G, const cv::Mat &R) {
     // Compute gradients
     auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
 
     // Check boundary classification for g_BGRy
-    bool is_boundary = checkBoundaryClassification(g_BGRy);
+    if (checkBoundaryClassification(g_BGRy)) return FIELD_BOUNDARY;
     // std::cout << "Boundary classification y-axis: " << std::boolalpha << is_boundary << std::endl;
 
     // Check marking classification for g_BGRy and g_BGRx
-    bool is_marking_y = checkMarkingClassification(g_BGRx);
+    if (checkMarkingClassification(g_BGRy)) return FIELD_MARKING;
     // std::cout << "Marking classification x-axis: " << std::boolalpha << is_marking_y << std::endl;
 
     // Check marking classification for g_BGRy and g_BGRx
-    bool is_marking_x = checkMarkingClassification(g_BGRy);
+    if (checkMarkingClassification(g_BGRx)) return FIELD_MARKING;
     // std::cout << "Marking classification y-axis: " << std::boolalpha << is_marking_x << std::endl;
 
-    bool result = is_boundary || is_marking_y || is_marking_x;
-    return result;
+    return NOT_A_FIELD_LINE;
 }
 
 inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
@@ -333,8 +339,8 @@ inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
         // We compare with the top and bottom pixel gradients
         if (gradImg[indexInArray] >= gradImg[indexInArray - imageWidth] + anchorThresh &&
             gradImg[indexInArray] >= gradImg[indexInArray + imageWidth] + anchorThresh) {
-          if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
-          if (!isFieldFeature(B, G, R)) continue;
+          //if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
+          //if (!isFieldFeature(B, G, R)) continue;
           anchorPoints[nAnchors].x = w;
           anchorPoints[nAnchors].y = h;
           nAnchors++;
@@ -344,8 +350,8 @@ inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
         // We compare with the left and right pixel gradients
         if (gradImg[indexInArray] >= gradImg[indexInArray - 1] + anchorThresh &&
             gradImg[indexInArray] >= gradImg[indexInArray + 1] + anchorThresh) {
-          if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
-          if (!isFieldFeature(B, G, R)) continue;
+          //if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
+          //if (!isFieldFeature(B, G, R)) continue;
           anchorPoints[nAnchors].x = w;
           anchorPoints[nAnchors].y = h;
           nAnchors++;
@@ -382,12 +388,14 @@ inline float blerp(float c00, float c10, float c01, float c11, float tx, float t
 
 void ELSED::drawAnchorPoints(const uint8_t *dirImg,
                              const std::vector<Pixel> &anchorPoints,
+                             const cv::Mat &BGR_image,
                              uint8_t *pEdgeImg) {
   assert(imgInfo && imgInfo->imageWidth > 0 && imgInfo->imageHeight > 0);
   assert(!imgInfo->gImg.empty() && !imgInfo->dirImg.empty() && pEdgeImg);
   assert(drawer);
   assert(!edgeImg.empty());
 
+  cv::Mat B, G, R;
   int imageWidth = imgInfo->imageWidth;
   int imageHeight = imgInfo->imageHeight;
   bool expandHorizontally;
@@ -409,9 +417,12 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
       // If anchor i is already been an edge pixel
       continue;
     }
+    //if (!extractWindowAndChannels(BGR_image, anchorPoint.x, anchorPoint.y, B, G, R)) continue;
+    //if (!isFieldFeature(B, G, R)) continue;
 
     // If the direction of this pixel is horizontal, then go left and right.
     expandHorizontally = dirImg[indexInArray] == UPM_EDGE_HORIZONTAL;
+    
 
     /****************** First side Expanding (Right or Down) ***************/
     // Select the first side towards we want to move. If the gradient points
@@ -425,6 +436,7 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
   float saliency;
   bool valid;
   int endpointDist, nOriInliers, nOriOutliers;
+  int seg_classification;
 #ifdef UPM_SD_USE_REPROJECTION
   cv::Point2f p;
   float lerp_dx, lerp_dy;
@@ -436,7 +448,10 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
   salientSegments.reserve(drawer->getDetectedFullSegments().size());
 
   for (const FullSegmentInfo &detectedSeg: drawer->getDetectedFullSegments()) {
-
+    cv::Mat B_sum = cv::Mat::zeros(3, 3, CV_32F);
+    cv::Mat G_sum = cv::Mat::zeros(3, 3, CV_32F);
+    cv::Mat R_sum = cv::Mat::zeros(3, 3, CV_32F);
+    int segment_size = 0;
     valid = true;
     if (params.validate) {
       if (detectedSeg.getNumOfPixels() < 2) {
@@ -510,8 +525,31 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
           if (angle < 0) angle += M_PI;
           if (angle >= M_PI) angle -= M_PI;
           circularDist(theta, angle, M_PI) > validationTh ? nOriOutliers++ : nOriInliers++;
+          
+          // Implement here a function to:
+          // 1. Get the window around each px
+          // 2. Sum the windows along the pixels and save the number of sums to make an average in the end
+          if (!extractWindowAndChannels(BGR_image, px.x, px.y, B, G, R)) continue;
+          //std::cout << "B_sum:" << std::endl << B_sum << std::endl;
+          //std::cout << "B:" << std::endl << B << std::endl;
+          B.convertTo(B, CV_32F);
+          cv::add(B_sum, B, B_sum);
+          G.convertTo(G, CV_32F);
+          cv::add(G_sum, G, G_sum);
+          R.convertTo(R, CV_32F);
+          cv::add(R_sum, R, R_sum);
+          segment_size++;
         }
-
+        // Implement here:
+        // 1. B, G, R = average_window/N
+        // 2. valid = isFieldFeature(B, G, R) && nOriInliers > nOriOutliers
+        B = B_sum/segment_size;
+        G = G_sum/segment_size;
+        R = R_sum/segment_size;
+        //std::cout << "B:" << std::endl << B << std::endl;
+        //std::cout << "G:" << std::endl << B << std::endl;
+        //std::cout << "R:" << std::endl << B << std::endl;
+        
         valid = nOriInliers > nOriOutliers;
         saliency = nOriInliers;
       }
@@ -520,8 +558,9 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
     }
     if (valid) {
       const Segment &endpoints = detectedSeg.getEndpoints();
+      seg_classification = isFieldFeature(B, G, R);
       segments.push_back(endpoints);
-      salientSegments.emplace_back(endpoints, saliency);
+      salientSegments.emplace_back(endpoints, saliency, seg_classification);
     }
   }
 }

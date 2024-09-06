@@ -100,6 +100,7 @@ class ELSED {
  private:
   void drawAnchorPoints(const uint8_t *dirImg,
                         const std::vector<Pixel> &anchorPoints,
+                        const cv::Mat &BGR_image,
                         uint8_t *pEdgeImg);  // NOLINT
 
   ELSEDParams params;
