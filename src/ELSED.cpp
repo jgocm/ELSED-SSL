@@ -282,23 +282,23 @@ bool checkMarkingClassification(const std::array<float, 3> &g_BGR,
     return is_field_marking;
 }
 
-bool isFieldFeature(const cv::Mat &B, const cv::Mat &G, const cv::Mat &R) {
+int isFieldFeature(const cv::Mat &B, const cv::Mat &G, const cv::Mat &R) {
     // Compute gradients
     auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
 
     // Check boundary classification for g_BGRy
-    if (checkBoundaryClassification(g_BGRy)) return true;
+    if (checkBoundaryClassification(g_BGRy)) return FIELD_BOUNDARY;
     // std::cout << "Boundary classification y-axis: " << std::boolalpha << is_boundary << std::endl;
 
     // Check marking classification for g_BGRy and g_BGRx
-    if (checkMarkingClassification(g_BGRy)) return true;
+    if (checkMarkingClassification(g_BGRy)) return FIELD_MARKING;
     // std::cout << "Marking classification x-axis: " << std::boolalpha << is_marking_y << std::endl;
 
     // Check marking classification for g_BGRy and g_BGRx
-    if (checkMarkingClassification(g_BGRx)) return true;
+    if (checkMarkingClassification(g_BGRx)) return FIELD_MARKING;
     // std::cout << "Marking classification y-axis: " << std::boolalpha << is_marking_x << std::endl;
 
-    return false;
+    return NOT_A_FIELD_LINE;
 }
 
 inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
@@ -436,6 +436,7 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
   float saliency;
   bool valid;
   int endpointDist, nOriInliers, nOriOutliers;
+  int seg_classification;
 #ifdef UPM_SD_USE_REPROJECTION
   cv::Point2f p;
   float lerp_dx, lerp_dy;
@@ -548,9 +549,8 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
         //std::cout << "B:" << std::endl << B << std::endl;
         //std::cout << "G:" << std::endl << B << std::endl;
         //std::cout << "R:" << std::endl << B << std::endl;
-        //if (!isFieldFeature(B, G, R)) continue;
-        //printf("segment size: %d\n", segment_size);
-        valid = nOriInliers > nOriOutliers && isFieldFeature(B, G, R);
+        
+        valid = nOriInliers > nOriOutliers;
         saliency = nOriInliers;
       }
     } else {
@@ -558,8 +558,9 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
     }
     if (valid) {
       const Segment &endpoints = detectedSeg.getEndpoints();
+      seg_classification = isFieldFeature(B, G, R);
       segments.push_back(endpoints);
-      salientSegments.emplace_back(endpoints, saliency);
+      salientSegments.emplace_back(endpoints, saliency, seg_classification);
     }
   }
 }

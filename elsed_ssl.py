@@ -139,21 +139,24 @@ if __name__ == "__main__":
         
         import time
         t0 = time.time()
-        segments, scores = pyelsed.detect(original_img, 1, 30, 150)
+        segments, scores, labels = pyelsed.detect(original_img, 1, 30, 150)
         print(f'elapsed_time: {time.time() - t0}')
         gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
         
-        for s in segments.astype(np.int32):
+        for s, label in zip(segments.astype(np.int32), labels):
             line_points = get_bresenham_line_points(s)
             
-            gx, gy = get_gradients_from_line_points(original_img, line_points)
+            #gx, gy = get_gradients_from_line_points(original_img, line_points)
             
-            if np.linalg.norm(gy)>np.linalg.norm(gx): g = gy
-            else: g = gx
+            #if np.linalg.norm(gy)>np.linalg.norm(gx): g = gy
+            #else: g = gx
 
-            is_field_boundary = check_boundary_classification(g, len(line_points))
-            is_field_marking = check_marking_classification(g, len(line_points))
+            #is_field_boundary = check_boundary_classification(g, len(line_points))
+            #is_field_marking = check_marking_classification(g, len(line_points))
             
+            is_field_boundary = (label==1)
+            is_field_marking = (label==2)
+
             for p in line_points:
                 x, y = p
                 gs_img[y, x] = RED

@@ -24,6 +24,10 @@
 #define UPM_SKIP_EDGE_PT 2
 #define UPM_MAX_OUTLIERS_TH 3
 
+#define NOT_A_FIELD_LINE 0
+#define FIELD_BOUNDARY 1
+#define FIELD_MARKING 2
+
 namespace upm {
 // Line segment in format [x0, y0, x1, y1] where the endpoints are (x0, y0) and (x1, y1)
 typedef cv::Vec4f Segment;
@@ -76,14 +80,23 @@ typedef std::vector<Pixel> ImageEdge;
 typedef std::vector<ImageEdge> ImageEdges;
 
 /**
+ * SalientSegment will also include the segment classification:
+ * Field boundary: green->black borders of the field
+ * Field marking: green<->white lines along the field
+ * Not a Field Feature (FF): none of the above and should be discarded
+ */
+
+/**
  * This struct represents a segment weighted by its importance in the image.
  */
 struct SalientSegment {
   Segment segment;
   double salience;
+  int classification = NOT_A_FIELD_LINE;
 
   SalientSegment() = default;
   SalientSegment(const Segment &segment, double salience) : segment(segment), salience(salience) {}
+  SalientSegment(const Segment &segment, double salience, int classification) : segment(segment), salience(salience), classification(classification) {}
 
   inline bool operator<(const SalientSegment &rhs) const {
     if (salience == rhs.salience) {
@@ -99,6 +112,8 @@ struct SalientSegment {
 };
 
 typedef std::vector<SalientSegment> SalientSegments;
+
+
 
 /**
  * @brief Calculate the angular distance between two angles valueA and valueB.
@@ -127,7 +142,7 @@ circularDist(double valueA, double valueB, double mod = 360) {
 
 /**
  * @brief Gets the projection of a point into a line.
- * @param l The general line ecuation ax + by +c = 0 in format (a, b, c)
+ * @param l The general line ecuation ax + by + c = 0 in format (a, b, c)
  * @param p The point which we want to calculate its projection over the line
  * @return The point p' which is the projection of p over the line.
  */
