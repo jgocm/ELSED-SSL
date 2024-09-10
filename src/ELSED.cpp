@@ -164,7 +164,7 @@ bool extractWindowAndChannels(const cv::Mat &src, int x, int y, cv::Mat &B, cv::
   return true; // Window is valid
 }
 
-std::pair<std::array<float, 3>, std::array<float, 3>> computeGradientsBGR(const cv::Mat &B, const cv::Mat &G, const cv::Mat &R) {
+std::pair<upm::Gradient, upm::Gradient> computeGradientsBGR(const cv::Mat &B, const cv::Mat &G, const cv::Mat &R) {
   // Define the convolution operators
   cv::Mat operator_x = (cv::Mat_<float>(3, 3) << -1, 0, 1,
                                                   -2, 0, 2,
@@ -193,7 +193,8 @@ std::pair<std::array<float, 3>, std::array<float, 3>> computeGradientsBGR(const 
 
   // Extract the central pixel value from the convolved images
   // Assuming the input windows are 3x3, the central pixel is at (1,1)
-  float g_BGRx[3], g_BGRy[3];
+  
+  upm::Gradient g_BGRx, g_BGRy;
   g_BGRx[0] = convolved_Bx.at<float>(1, 1);
   g_BGRx[1] = convolved_Gx.at<float>(1, 1);
   g_BGRx[2] = convolved_Rx.at<float>(1, 1);
@@ -202,14 +203,14 @@ std::pair<std::array<float, 3>, std::array<float, 3>> computeGradientsBGR(const 
   g_BGRy[1] = convolved_Gy.at<float>(1, 1);
   g_BGRy[2] = convolved_Ry.at<float>(1, 1);
 
-  return {std::array<float, 3>{g_BGRx[0], g_BGRx[1], g_BGRx[2]}, std::array<float, 3>{g_BGRy[0], g_BGRy[1], g_BGRy[2]}};
+  return {g_BGRx, g_BGRy};
 }
 
-bool checkBoundaryClassification(const std::array<float, 3> &g_BGRy, 
+bool checkBoundaryClassification(const upm::Gradient &g_BGRy, 
                                  float gradient_threshold = 6288.33f, 
                                  float angle_threshold_deg = 52.0f) {
   // Define the GREEN vector as [0, 255, 0]
-  std::array<float, 3> GREEN = {0.0f, 255.0f, 0.0f};
+  cv::Vec3f GREEN = {0.0f, 255.0f, 0.0f};
 
   // Convert angle threshold to radians
   float angle_threshold = angle_threshold_deg * 3.1415 / 180;
@@ -237,15 +238,15 @@ bool checkBoundaryClassification(const std::array<float, 3> &g_BGRy,
   return is_field_boundary;
 }
 
-bool checkMarkingClassification(const std::array<float, 3> &g_BGR,
+bool checkMarkingClassification(upm::Gradient &g_BGR,
                                  float gradient_threshold = 7575.37f, 
                                  float angle_threshold_deg = 32.38f) {
     // Define the GREEN and WHITE vectors
-    std::array<float, 3> GREEN = {0.0f, 255.0f, 0.0f}; // RGB for GREEN
-    std::array<float, 3> WHITE = {255.0f, 255.0f, 255.0f}; // RGB for WHITE
+    cv::Vec3f GREEN = {0.0f, 255.0f, 0.0f}; // RGB for GREEN
+    cv::Vec3f WHITE = {255.0f, 255.0f, 255.0f}; // RGB for WHITE
 
     // Compute GREEN - WHITE
-    std::array<float, 3> GREEN_MINUS_WHITE = {
+    cv::Vec3f GREEN_MINUS_WHITE = {
         GREEN[0] - WHITE[0],
         GREEN[1] - WHITE[1],
         GREEN[2] - WHITE[2]
@@ -282,9 +283,9 @@ bool checkMarkingClassification(const std::array<float, 3> &g_BGR,
     return is_field_marking;
 }
 
-int isFieldFeature(const cv::Mat &B, const cv::Mat &G, const cv::Mat &R) {
+int isFieldFeature(upm::Gradient g_BGRx, upm::Gradient  g_BGRy) {
     // Compute gradients
-    auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
+    //auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
 
     // Check boundary classification for g_BGRy
     if (checkBoundaryClassification(g_BGRy)) return FIELD_BOUNDARY;
@@ -558,9 +559,11 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
     }
     if (valid) {
       const Segment &endpoints = detectedSeg.getEndpoints();
-      seg_classification = isFieldFeature(B, G, R);
+      auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
+      //std::cout << "gradient x: " << g_BGRx << std::endl;
+      seg_classification = isFieldFeature(g_BGRx, g_BGRy);
       segments.push_back(endpoints);
-      salientSegments.emplace_back(endpoints, saliency, seg_classification);
+      salientSegments.emplace_back(endpoints, saliency, seg_classification, g_BGRx, g_BGRy);
     }
   }
 }

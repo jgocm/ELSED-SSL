@@ -140,11 +140,11 @@ if __name__ == "__main__":
         dbg_img = original_img.copy()
         
         t0 = time.time()
-        segments, scores, labels = pyelsed.detect(original_img, 1, 30, 150)
+        segments, scores, labels, grads_x, grads_y = pyelsed.detect(original_img, 1, 30, 150)
         print(f'elapsed_time: {time.time() - t0}')
         gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
         
-        for s, label in zip(segments.astype(np.int32), labels):
+        for s, label, grad_x, grad_y in zip(segments.astype(np.int32), labels, grads_x, grads_y):
             line_points = get_bresenham_line_points(s)
             
             #gx, gy = get_gradients_from_line_points(original_img, line_points)
@@ -155,6 +155,8 @@ if __name__ == "__main__":
             #is_field_boundary = check_boundary_classification(g, len(line_points))
             #is_field_marking = check_marking_classification(g, len(line_points))
             
+            print(f'grad_x: {grad_x}, grad_y: {grad_y}')
+
             is_field_boundary = (label==1)
             is_field_marking = (label==2)
 

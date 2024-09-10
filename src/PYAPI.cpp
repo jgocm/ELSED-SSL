@@ -12,9 +12,13 @@ inline py::tuple salient_segments_to_py(const upm::SalientSegments &ssegs) {
   py::array_t<float> scores({int(ssegs.size()), 1});
   py::array_t<float> labels({int(ssegs.size()), 1});
   py::array_t<float> segments({int(ssegs.size()), 4});
+  py::array_t<float> grad_x({int(ssegs.size()), 3});
+  py::array_t<float> grad_y({int(ssegs.size()), 3});
   float *p_scores = scores.mutable_data();
   float *p_labels = labels.mutable_data();
   float *p_segments = segments.mutable_data();
+  float *p_grad_x = grad_x.mutable_data();
+  float *p_grad_y = grad_y.mutable_data();
   for (int i = 0; i < ssegs.size(); i++) {
     p_scores[i] = ssegs[i].salience;
     p_labels[i] = ssegs[i].classification;
@@ -22,8 +26,13 @@ inline py::tuple salient_segments_to_py(const upm::SalientSegments &ssegs) {
     p_segments[i * 4 + 1] = ssegs[i].segment[1];
     p_segments[i * 4 + 2] = ssegs[i].segment[2];
     p_segments[i * 4 + 3] = ssegs[i].segment[3];
-  }
-  return pybind11::make_tuple(segments, scores, labels);
+    p_grad_x[i * 3] = ssegs[i].g_BGRx[0];
+    p_grad_x[i * 3 + 1] = ssegs[i].g_BGRx[1];
+    p_grad_x[i * 3 + 2] = ssegs[i].g_BGRx[2];
+    p_grad_y[i * 3] = ssegs[i].g_BGRy[0];
+    p_grad_y[i * 3 + 1] = ssegs[i].g_BGRy[1];
+    p_grad_y[i * 3 + 2] = ssegs[i].g_BGRy[2];  }
+  return pybind11::make_tuple(segments, scores, labels, grad_x, grad_y);
 }
 
 py::tuple compute_elsed(const py::array &py_img,

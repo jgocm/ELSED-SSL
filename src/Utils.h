@@ -32,6 +32,7 @@ namespace upm {
 // Line segment in format [x0, y0, x1, y1] where the endpoints are (x0, y0) and (x1, y1)
 typedef cv::Vec4f Segment;
 typedef std::vector<Segment> Segments;
+typedef cv::Vec3f Gradient;
 
 /**
  * Data structure containing the gradient information of an image
@@ -93,10 +94,18 @@ struct SalientSegment {
   Segment segment;
   double salience;
   int classification = NOT_A_FIELD_LINE;
+  Gradient g_BGRx;
+  Gradient g_BGRy;
 
   SalientSegment() = default;
   SalientSegment(const Segment &segment, double salience) : segment(segment), salience(salience) {}
   SalientSegment(const Segment &segment, double salience, int classification) : segment(segment), salience(salience), classification(classification) {}
+  SalientSegment(const Segment &segment, double salience, int classification, const Gradient &g_BGRx, const Gradient &g_BGRy) : 
+                 segment(segment), 
+                 salience(salience), 
+                 classification(classification),
+                 g_BGRx(g_BGRx),
+                 g_BGRy(g_BGRy) {}
 
   inline bool operator<(const SalientSegment &rhs) const {
     if (salience == rhs.salience) {
