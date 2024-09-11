@@ -24,7 +24,7 @@
 #define UPM_SKIP_EDGE_PT 2
 #define UPM_MAX_OUTLIERS_TH 3
 
-#define NOT_A_FIELD_LINE 0
+#define NOT_A_FIELD_FEATURE 0
 #define FIELD_BOUNDARY 1
 #define FIELD_MARKING 2
 
@@ -93,7 +93,7 @@ typedef std::vector<ImageEdge> ImageEdges;
 struct SalientSegment {
   Segment segment;
   double salience;
-  int classification = NOT_A_FIELD_LINE;
+  int classification = NOT_A_FIELD_FEATURE;
   Gradient g_BGRx;
   Gradient g_BGRy;
 

@@ -10,7 +10,7 @@ def calculate_map(thresholds):
     boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = thresholds
     
     analyzer = SegmentsAnalyzer(pyelsed)
-    dataset_path = 'annotations/features_and_labels.csv'
+    dataset_path = 'annotations/segments_annotations.csv'
     df = pd.read_csv(dataset_path)
     
     mAP, TP_count, FP_count = 0, 0, 0
@@ -19,7 +19,7 @@ def calculate_map(thresholds):
         gx = np.array([row['grad_Bx'], row['grad_Gx'], row['grad_Rx']])
         gy = np.array([row['grad_By'], row['grad_Gy'], row['grad_Ry']])
         segment_length = row['segment_length']
-        is_field_boundary_gt = row['is_field_boundary_gt']
+        is_field_boundary_gt = row['is_field_boundary']
         
         is_field_boundary = analyzer.check_boundary_classification(g=gy, 
                                                                    l=segment_length,
@@ -44,13 +44,13 @@ def calculate_map(thresholds):
     return -(TP_count - FP_count)
 
 # Define the bounds for the thresholds
-lb = [5000, 10, 50]  # Lower bounds
+lb = [2500, 10, 50]  # Lower bounds
 ub = [15000, 90, 300]  # Upper bounds
 
 thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
 
 # Run PSO to optimize the thresholds
-optimal_thresholds, optimal_mAP = pso(calculate_map, lb, ub, swarmsize=30, maxiter=5)
+optimal_thresholds, optimal_mAP = pso(calculate_map, lb, ub, swarmsize=50, maxiter=10)
 
 # Print the optimal thresholds and the corresponding mAP
 print(f'Optimal thresholds: {optimal_thresholds}')

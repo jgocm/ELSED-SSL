@@ -299,7 +299,7 @@ int isFieldFeature(upm::Gradient g_BGRx, upm::Gradient  g_BGRy) {
     if (checkMarkingClassification(g_BGRx)) return FIELD_MARKING;
     // std::cout << "Marking classification y-axis: " << std::boolalpha << is_marking_x << std::endl;
 
-    return NOT_A_FIELD_LINE;
+    return NOT_A_FIELD_FEATURE;
 }
 
 inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,

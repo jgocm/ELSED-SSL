@@ -26,24 +26,26 @@ if __name__ == "__main__":
         img_path = row['img_path']
         original_img = cv2.imread(img_path)
         dbg_img = original_img.copy()
-        
+
         segment = np.array([row['x0'], row['y0'], row['x1'], row['y1']], dtype=np.int32)
         is_field_boundary_gt = row['is_field_boundary']
         is_field_marking_gt = row['is_field_marking']
-
-        line_points = analyzer.get_bresenham_line_points(segment)
         
-        gx, gy = analyzer.get_gradients_from_line_points(original_img, line_points)
+        gx = np.array([row['grad_Bx'],row['grad_Gx'],row['grad_Rx']])
+        gy = np.array([row['grad_By'],row['grad_Gy'],row['grad_Ry']])
+        segment_length = row['segment_length']
         #if np.linalg.norm(gy)>np.linalg.norm(gx): g = gy
         #else: g = gx
         #g = gy # start only with gy
+        line_points = analyzer.get_bresenham_line_points(segment)
+        
         is_field_boundary = analyzer.check_boundary_classification(g = gy, 
-                                                                   l = len(line_points),
+                                                                   l = segment_length,
                                                                    gradient_threshold = boundary_grad_th,
                                                                    angle_threshold_deg = boundary_angle_threshold_deg,
                                                                    min_segment_length = boundary_min_seg_len)
         is_field_marking = analyzer.check_marking_classification(g = gy, 
-                                                                 l = len(line_points),
+                                                                 l = segment_length,
                                                                  gradient_threshold = markings_grad_th,
                                                                  angle_threshold_deg = markings_angle_threshold_deg,
                                                                  min_segment_length = markings_min_seg_len)
@@ -72,9 +74,11 @@ if __name__ == "__main__":
         
         cv2.imshow('elsed segments', dbg_img)
         if is_false_positive:
+            print(f'False Positive detected on row nr: {index+2}')
             print(f'            Boundary  Marking')
             print(f'Inference:    {is_field_boundary},   {is_field_marking}')
             print(f'Ground truth: {is_field_boundary_gt},   {is_field_marking_gt}')
+            breakpoint()
             key = cv2.waitKey(0) & 0xFF
         else:
             key = cv2.waitKey(1) & 0xFF

@@ -155,7 +155,7 @@ class SegmentsAnalyzer():
 
     def check_boundary_classification(self, g, l, gradient_threshold=8000, angle_threshold_deg=50, min_segment_length=200):
         angle_threshold = np.deg2rad(angle_threshold_deg)
-        projection = np.dot(g, self.GREEN)
+        projection = -np.dot(g, self.GREEN)
         proj_angle = np.arccos(projection/(np.linalg.norm(g)*np.linalg.norm(self.GREEN)))
         is_field_boundary = (projection>gradient_threshold and \
                             np.abs(proj_angle)<angle_threshold and \
