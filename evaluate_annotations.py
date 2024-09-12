@@ -32,23 +32,21 @@ if __name__ == "__main__":
         is_field_marking_gt = row['is_field_marking']
         
         gx = np.array([row['grad_Bx'],row['grad_Gx'],row['grad_Rx']])
-        gy = np.array([row['grad_By'],row['grad_Gy'],row['grad_Ry']])
+        gy = -np.array([row['grad_By'],row['grad_Gy'],row['grad_Ry']])
         segment_length = row['segment_length']
-        #if np.linalg.norm(gy)>np.linalg.norm(gx): g = gy
-        #else: g = gx
-        #g = gy # start only with gy
+
         line_points = analyzer.get_bresenham_line_points(segment)
         
         is_field_boundary = analyzer.check_boundary_classification(g = gy, 
                                                                    l = segment_length,
                                                                    gradient_threshold = boundary_grad_th,
                                                                    angle_threshold_deg = boundary_angle_threshold_deg,
-                                                                   min_segment_length = boundary_min_seg_len)
+                                                                   min_segment_length = 150)
         is_field_marking = analyzer.check_marking_classification(g = gy, 
                                                                  l = segment_length,
                                                                  gradient_threshold = markings_grad_th,
                                                                  angle_threshold_deg = markings_angle_threshold_deg,
-                                                                 min_segment_length = markings_min_seg_len)
+                                                                 min_segment_length = 150)
         
         is_true_positive = (is_field_boundary and is_field_boundary_gt) or (is_field_marking and is_field_marking_gt)
         is_false_positive = (is_field_boundary and not is_field_boundary_gt) or (is_field_marking and not is_field_marking_gt)
@@ -58,12 +56,12 @@ if __name__ == "__main__":
         if is_true_positive:
             draw_color = analyzer.GREEN
             TP_count += 1
-            print("True Positive")
+            #print("True Positive")
             
         if is_false_positive: 
             draw_color = analyzer.RED
             FP_count += 1
-            print("False positive")
+            #print("False positive")
         
         for p in line_points:
             x, y = p
@@ -71,14 +69,13 @@ if __name__ == "__main__":
         
         if TP_count+FP_count > 0:
             mAP = TP_count/(TP_count+FP_count)
-        
+
         cv2.imshow('elsed segments', dbg_img)
         if is_false_positive:
-            print(f'False Positive detected on row nr: {index+2}')
+            print(f'False Positive detected on row nr {index+2}: {segment}')
             print(f'            Boundary  Marking')
             print(f'Inference:    {is_field_boundary},   {is_field_marking}')
             print(f'Ground truth: {is_field_boundary_gt},   {is_field_marking_gt}')
-            breakpoint()
             key = cv2.waitKey(0) & 0xFF
         else:
             key = cv2.waitKey(1) & 0xFF

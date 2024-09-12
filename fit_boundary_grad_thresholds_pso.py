@@ -17,7 +17,7 @@ def calculate_map(thresholds):
 
     for index, row in df.iterrows():
         gx = np.array([row['grad_Bx'], row['grad_Gx'], row['grad_Rx']])
-        gy = np.array([row['grad_By'], row['grad_Gy'], row['grad_Ry']])
+        gy = -np.array([row['grad_By'], row['grad_Gy'], row['grad_Ry']])
         segment_length = row['segment_length']
         is_field_boundary_gt = row['is_field_boundary']
         
@@ -44,8 +44,8 @@ def calculate_map(thresholds):
     return -(TP_count - FP_count)
 
 # Define the bounds for the thresholds
-lb = [2500, 10, 50]  # Lower bounds
-ub = [15000, 90, 300]  # Upper bounds
+lb = [10, 20, 50]  # Lower bounds
+ub = [255, 70, 300]  # Upper bounds
 
 thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
 

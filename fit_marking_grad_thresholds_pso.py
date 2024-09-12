@@ -17,7 +17,7 @@ def calculate_map(thresholds):
 
     for index, row in df.iterrows():
         gx = np.array([row['grad_Bx'], row['grad_Gx'], row['grad_Rx']])
-        gy = np.array([row['grad_By'], row['grad_Gy'], row['grad_Ry']])
+        gy = -np.array([row['grad_By'], row['grad_Gy'], row['grad_Ry']])
         segment_length = row['segment_length']
         is_field_marking_gt = row['is_field_marking']
         
@@ -52,13 +52,13 @@ def calculate_map(thresholds):
     return -(TP_count - FP_count)
 
 # Define the bounds for the thresholds
-lb = [2500, 10, 50]  # Lower bounds
-ub = [15000, 90, 300]  # Upper bounds
+lb = [10, 20, 50]  # Lower bounds
+ub = [255, 70, 300]  # Upper bounds
 
 thresholds_path = 'annotations/optimal_marking_thresholds.npy'
 
 # Run PSO to optimize the thresholds
-optimal_thresholds, optimal_mAP = pso(calculate_map, lb, ub, swarmsize=30, maxiter=5)
+optimal_thresholds, optimal_mAP = pso(calculate_map, lb, ub, swarmsize=50, maxiter=10)
 
 # Print the optimal thresholds and the corresponding mAP
 print(f'Optimal thresholds: {optimal_thresholds}')

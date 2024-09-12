@@ -155,8 +155,8 @@ class SegmentsAnalyzer():
 
     def check_boundary_classification(self, g, l, gradient_threshold=8000, angle_threshold_deg=50, min_segment_length=200):
         angle_threshold = np.deg2rad(angle_threshold_deg)
-        projection = -np.dot(g, self.GREEN)
-        proj_angle = np.arccos(projection/(np.linalg.norm(g)*np.linalg.norm(self.GREEN)))
+        projection = np.dot(g, self.GREEN)/np.linalg.norm(self.GREEN)
+        proj_angle = np.arccos(projection/np.linalg.norm(g))
         is_field_boundary = (projection>gradient_threshold and \
                             np.abs(proj_angle)<angle_threshold and \
                             l>min_segment_length)
@@ -164,8 +164,8 @@ class SegmentsAnalyzer():
 
     def check_marking_classification(self, g, l, gradient_threshold=8000, angle_threshold_deg=30, min_segment_length=50):
         angle_threshold = np.deg2rad(angle_threshold_deg)
-        projection = np.dot(g, self.GREEN-self.WHITE)
-        proj_angle = np.arccos(projection/(np.linalg.norm(g)*np.linalg.norm(self.GREEN-self.WHITE)))
+        projection = np.dot(g, self.GREEN-self.WHITE)/np.linalg.norm(self.GREEN-self.WHITE)
+        proj_angle = np.arccos(projection/np.linalg.norm(g))
         if proj_angle>np.pi/2: proj_angle = np.pi-proj_angle
         is_field_marking = (np.abs(projection)>gradient_threshold and \
                             np.abs(proj_angle)<angle_threshold and 

@@ -67,6 +67,7 @@ if __name__ == "__main__":
                 df = pd.DataFrame(annotations, columns=columns)
                 df.to_csv(annotations_path, mode='a', header=False, index=False)
                 print(f"updated annotations at: {annotations_path}")
+                annotations = []
                 break
             elif key==ord('r'):
                 # remove last annotation (in case it was wrong)

@@ -155,7 +155,7 @@ if __name__ == "__main__":
             #is_field_boundary = check_boundary_classification(g, len(line_points))
             #is_field_marking = check_marking_classification(g, len(line_points))
             
-            print(f'grad_x: {grad_x}, grad_y: {grad_y}')
+            print(f'grad_x: {grad_x}, grad_y: {-grad_y}')
 
             is_field_boundary = (label==1)
             is_field_marking = (label==2)
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         cv2.imshow('elsed-ssl', dbg_img)
         #cv2.imshow('original', original_img)
         key = cv2.waitKey(0) & 0xFF
-            
+
         if key==ord('q'):
             break
         elif key==ord('s'):

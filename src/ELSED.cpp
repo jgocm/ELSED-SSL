@@ -207,29 +207,26 @@ std::pair<upm::Gradient, upm::Gradient> computeGradientsBGR(const cv::Mat &B, co
 }
 
 bool checkBoundaryClassification(const upm::Gradient &g_BGRy, 
-                                 float gradient_threshold = 6288.33f, 
-                                 float angle_threshold_deg = 52.0f) {
-  // Define the GREEN vector as [0, 255, 0]
-  cv::Vec3f GREEN = {0.0f, 255.0f, 0.0f};
+                                 float gradient_threshold = 21.8f, 
+                                 float angle_threshold_deg = 50.52f) {
+  // Define the GREEN vector as [0, 1, 0]
+  cv::Vec3f GREEN = {0.0f, 1.0f, 0.0f};
 
   // Convert angle threshold to radians
   float angle_threshold = angle_threshold_deg * 3.1415 / 180;
 
   // Compute the dot product of g_BGRy and GREEN
-  float projection = -(g_BGRy[0] * GREEN[0] + 
-                       g_BGRy[1] * GREEN[1] + 
-                       g_BGRy[2] * GREEN[2]);
+  float projection = (g_BGRy[0] * GREEN[0] + 
+                      g_BGRy[1] * GREEN[1] + 
+                      g_BGRy[2] * GREEN[2]);
 
   // Compute the norms of g_BGRy and GREEN
   float norm_g = std::sqrt(g_BGRy[0] * g_BGRy[0] + 
                            g_BGRy[1] * g_BGRy[1] + 
                            g_BGRy[2] * g_BGRy[2]);
-  float norm_GREEN = std::sqrt(GREEN[0] * GREEN[0] + 
-                               GREEN[1] * GREEN[1] + 
-                               GREEN[2] * GREEN[2]);
 
   // Compute the angle between g_BGRy and GREEN
-  float proj_angle = std::acos(projection / (norm_g * norm_GREEN));
+  float proj_angle = std::acos(projection / norm_g);
 
   // Check if the pixel is a field boundary
   bool is_field_boundary = (projection > gradient_threshold && 
@@ -239,11 +236,11 @@ bool checkBoundaryClassification(const upm::Gradient &g_BGRy,
 }
 
 bool checkMarkingClassification(upm::Gradient &g_BGR,
-                                 float gradient_threshold = 7575.37f, 
-                                 float angle_threshold_deg = 32.38f) {
+                                 float gradient_threshold = 10.0f, 
+                                 float angle_threshold_deg = 29.43f) {
     // Define the GREEN and WHITE vectors
-    cv::Vec3f GREEN = {0.0f, 255.0f, 0.0f}; // RGB for GREEN
-    cv::Vec3f WHITE = {255.0f, 255.0f, 255.0f}; // RGB for WHITE
+    cv::Vec3f GREEN = {0.0f, 1.0f, 0.0f}; // RGB for GREEN
+    cv::Vec3f WHITE = {1.0f, 1.0f, 1.0f}; // RGB for WHITE
 
     // Compute GREEN - WHITE
     cv::Vec3f GREEN_MINUS_WHITE = {
@@ -255,21 +252,22 @@ bool checkMarkingClassification(upm::Gradient &g_BGR,
     // Convert angle threshold to radians
     float angle_threshold = angle_threshold_deg * 3.1415 / 180;
 
+    float norm_GREEN_MINUS_WHITE = std::sqrt(GREEN_MINUS_WHITE[0] * GREEN_MINUS_WHITE[0] +
+                                             GREEN_MINUS_WHITE[1] * GREEN_MINUS_WHITE[1] +
+                                             GREEN_MINUS_WHITE[2] * GREEN_MINUS_WHITE[2]);
     // Compute the dot product of g_BGR and GREEN_MINUS_WHITE
-    float projection = g_BGR[0] * GREEN_MINUS_WHITE[0] +
-                       g_BGR[1] * GREEN_MINUS_WHITE[1] +
-                       g_BGR[2] * GREEN_MINUS_WHITE[2];
+    float projection = (g_BGR[0] * GREEN_MINUS_WHITE[0] +
+                        g_BGR[1] * GREEN_MINUS_WHITE[1] +
+                        g_BGR[2] * GREEN_MINUS_WHITE[2]) /
+                        norm_GREEN_MINUS_WHITE;
 
     // Compute the norms of g_BGR and GREEN_MINUS_WHITE
     float norm_g = std::sqrt(g_BGR[0] * g_BGR[0] + 
                              g_BGR[1] * g_BGR[1] + 
                              g_BGR[2] * g_BGR[2]);
-    float norm_GREEN_MINUS_WHITE = std::sqrt(GREEN_MINUS_WHITE[0] * GREEN_MINUS_WHITE[0] +
-                                             GREEN_MINUS_WHITE[1] * GREEN_MINUS_WHITE[1] +
-                                             GREEN_MINUS_WHITE[2] * GREEN_MINUS_WHITE[2]);
 
     // Compute the angle between g_BGR and GREEN_MINUS_WHITE
-    float proj_angle = std::acos(projection / (norm_g * norm_GREEN_MINUS_WHITE));
+    float proj_angle = std::acos(projection / norm_g);
 
     // Adjust the angle if it's greater than 90 degrees
     if (proj_angle > CV_PI / 2.0f) {
@@ -561,7 +559,7 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
       const Segment &endpoints = detectedSeg.getEndpoints();
       auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
       //std::cout << "gradient x: " << g_BGRx << std::endl;
-      seg_classification = isFieldFeature(g_BGRx, g_BGRy);
+      seg_classification = isFieldFeature(g_BGRx, -g_BGRy);
       segments.push_back(endpoints);
       salientSegments.emplace_back(endpoints, saliency, seg_classification, g_BGRx, g_BGRy);
     }
