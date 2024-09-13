@@ -20,7 +20,7 @@ if __name__ == "__main__":
     boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
     markings_grad_th, markings_angle_threshold_deg, markings_min_seg_len = marking_thresholds
     
-    mAP, TP_count, FP_count = 0, 0, 0
+    precision, TP_count, FP_count, FN_count = 0, 0, 0, 0
     
     for index, row in df.iterrows():
         img_path = row['img_path']
@@ -41,16 +41,17 @@ if __name__ == "__main__":
                                                                    l = segment_length,
                                                                    gradient_threshold = boundary_grad_th,
                                                                    angle_threshold_deg = boundary_angle_threshold_deg,
-                                                                   min_segment_length = 150)
+                                                                   min_segment_length = boundary_min_seg_len)
         is_field_marking = analyzer.check_marking_classification(g = gy, 
                                                                  l = segment_length,
                                                                  gradient_threshold = markings_grad_th,
                                                                  angle_threshold_deg = markings_angle_threshold_deg,
-                                                                 min_segment_length = 150)
+                                                                 min_segment_length = markings_min_seg_len)
         
         is_true_positive = (is_field_boundary and is_field_boundary_gt) or (is_field_marking and is_field_marking_gt)
         is_false_positive = (is_field_boundary and not is_field_boundary_gt) or (is_field_marking and not is_field_marking_gt)
-        
+        is_false_negative = (not is_field_boundary and is_field_boundary_gt) or (not is_field_marking and is_field_marking_gt)
+
         draw_color = analyzer.RED
         
         if is_true_positive:
@@ -62,13 +63,18 @@ if __name__ == "__main__":
             draw_color = analyzer.RED
             FP_count += 1
             #print("False positive")
-        
+
+        if is_false_negative: 
+            draw_color = analyzer.BLACK
+            FN_count += 1
+            #print("False negative")
+
         for p in line_points:
             x, y = p
             dbg_img[y, x] = draw_color
         
         if TP_count+FP_count > 0:
-            mAP = TP_count/(TP_count+FP_count)
+            precision = TP_count/(TP_count+FP_count)
 
         cv2.imshow('elsed segments', dbg_img)
         if is_false_positive:
@@ -83,4 +89,4 @@ if __name__ == "__main__":
         if key==ord('q'):
             break
     
-    print(f'mAP: {mAP}, TP: {TP_count}, FP: {FP_count}, total lines: {index+1}')
+    print(f'Precision: {precision}, TP: {TP_count}, FP: {FP_count}, FN: {FN_count}, total lines: {index+1}')

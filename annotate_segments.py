@@ -6,7 +6,7 @@ from elsed_analyzer import SegmentsAnalyzer
 if __name__ == "__main__":
     analyzer = SegmentsAnalyzer()
     dataset_path = "/home/joao-dt/ssl-navigation-dataset"
-    annotations_path = "annotations/segments_annotations_2.csv"
+    annotations_path = "annotations/segments_annotations.csv"
     scenarios = ["rnd", "sqr", "igs"]
     rounds = 3
     max_img_nr = 2000
