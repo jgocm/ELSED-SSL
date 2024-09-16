@@ -82,7 +82,7 @@ if __name__ == "__main__":
             print(f'            Boundary  Marking')
             print(f'Inference:    {is_field_boundary},   {is_field_marking}')
             print(f'Ground truth: {is_field_boundary_gt},   {is_field_marking_gt}')
-            key = cv2.waitKey(0) & 0xFF
+            #key = cv2.waitKey(0) & 0xFF
         else:
             key = cv2.waitKey(1) & 0xFF
         

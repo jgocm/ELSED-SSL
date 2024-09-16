@@ -11,7 +11,7 @@ def calculate_map(thresholds):
     
     analyzer = SegmentsAnalyzer(pyelsed)
     dataset_path = 'annotations/segments_annotations.csv'
-    df = pd.read_csv(dataset_path)
+    df = pd.read_csv(dataset_path)[:100]
     
     mAP, TP_count, FP_count = 0, 0, 0
 
