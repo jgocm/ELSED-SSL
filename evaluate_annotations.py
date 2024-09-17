@@ -20,7 +20,7 @@ if __name__ == "__main__":
     boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
     markings_grad_th, markings_angle_threshold_deg, markings_min_seg_len = marking_thresholds
     
-    precision, TP_count, FP_count, FN_count = 0, 0, 0, 0
+    precision, recall, TP_count, FP_count, FN_count = 0, 0, 0, 0, 0
     
     for index, row in df.iterrows():
         img_path = row['img_path']
@@ -76,6 +76,9 @@ if __name__ == "__main__":
         if TP_count+FP_count > 0:
             precision = TP_count/(TP_count+FP_count)
 
+        if TP_count+FN_count > 0:
+            recall = TP_count/(TP_count+FN_count)
+
         cv2.imshow('elsed segments', dbg_img)
         if is_false_positive:
             print(f'False Positive detected on row nr {index+2}: {segment}')
@@ -89,4 +92,4 @@ if __name__ == "__main__":
         if key==ord('q'):
             break
     
-    print(f'Precision: {precision}, TP: {TP_count}, FP: {FP_count}, FN: {FN_count}, total lines: {index+1}')
+    print(f'Precision: {precision}, Recall: {recall}, TP: {TP_count}, FP: {FP_count}, FN: {FN_count}, total lines: {index+1}')
