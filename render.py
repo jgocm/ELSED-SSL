@@ -19,11 +19,11 @@ class Robot:
     def __init__(self,
                  x_mm: float = 0,
                  y_mm: float = 0,
-                 theta_deg: float = 0,
+                 theta_rad: float = 0,
                  diameter_mm: float = 180):
         self.x = x_mm
         self.y = y_mm
-        self.theta = np.deg2rad(theta_deg)
+        self.theta = theta_rad
         self.radius = diameter_mm/2
 
 class LineSegment2D:
@@ -40,6 +40,12 @@ class LineSegment2D:
     @property
     def coef(self):
         return np.arctan2(self.y2-self.y1, self.x2-self.x1)
+    
+    def mul(self, value):
+        self.x1 *= value
+        self.y1 *= value
+        self.x2 *= value
+        self.y2 *= value
 
 class Goal:
     def __init__(self,
@@ -100,6 +106,7 @@ class Render:
                  field_origin_mm):
         
         self.make_background(img_height, field_length_mm, field_width_mm)
+        self.img = self.background.copy()
 
         self.scale = self.img.shape[1]/field_length_mm
         self.boundary_width = self.scale*boundary_width_mm
@@ -110,10 +117,15 @@ class Render:
         self.draw_goal()
         self.draw_field_markings()
 
+    def reset(self):
+        self.img = self.background.copy()
+        self.draw_goal()
+        self.draw_field_markings()
+
     def make_background(self, img_height, field_length, field_width):
         field_proportion = field_length/field_width
         img_width = int(field_proportion*img_height)
-        self.img = np.full((img_height, img_width, 3), COLORS['BG_GREEN'], dtype=np.uint8)
+        self.background = np.full((img_height, img_width, 3), COLORS['BG_GREEN'], dtype=np.uint8)
 
     def convert_field_to_image_coordinates(self, x_mm, y_mm):
         u, v = (self.scale*np.array([x_mm, -y_mm]) + self.center_offset).astype(int)
@@ -159,7 +171,7 @@ if __name__ == "__main__":
 
     render = Render(img_height, field_length, field_width, boundary_width, (boundary_width, field_width/2))
 
-    render.draw_robot(robot=Robot(3000, 1000, 45))
+    render.draw_robot(robot=Robot(3000, 1000, np.rad2deg(45)))
 
     render.imshow()
 
