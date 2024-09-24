@@ -45,6 +45,15 @@ struct ELSEDParams {
   bool treatJunctions = true;
   // List of junction size that will be tested (in pixels)
   std::vector<int> listJunctionSizes = {5, 7, 9};
+
+  // The threshold over the validation criteria. For ELSED, it is the gradient angular error in pixels.
+  double boundaryGradTh = 27.78332309;
+  double boundaryAngleTh = 51.21788891;
+  double boundaryMinLength = 95;
+  double markingGradTh = 32.17114637;
+  double markingAngleTh = 29.69457975;
+  double markingMinLength = 104;
+
 };
 
 /**
@@ -80,10 +89,11 @@ class ELSED {
 
   void clear();
 
+  int isFieldFeature(upm::Gradient g_BGRx, upm::Gradient  g_BGRy, float saliency);
+
   static void computeAnchorPoints(const cv::Mat &dirImage,
                                   const cv::Mat &gradImageWO,
                                   const cv::Mat &gradImage,
-                                  const cv::Mat &BGR_image,
                                   int scanInterval,
                                   int anchorThresh,
                                   std::vector<Pixel> &anchorPoints);  // NOLINT

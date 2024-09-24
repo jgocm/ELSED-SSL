@@ -43,7 +43,13 @@ py::tuple compute_elsed(const py::array &py_img,
                         double pxToSegmentDistTh = 1.5,
                         double validationTh = 0.15,
                         bool validate = true,
-                        bool treatJunctions = true
+                        bool treatJunctions = true,
+                        double boundaryGradTh = 27.78332309,
+                        double boundaryAngleTh = 51.21788891,
+                        double boundaryMinLength = 95,
+                        double markingGradTh = 32.17114637,
+                        double markingAngleTh = 29.69457975,
+                        double markingMinLength = 104
 ) {
 
   py::buffer_info info = py_img.request();
@@ -73,6 +79,12 @@ py::tuple compute_elsed(const py::array &py_img,
   params.validationTh = validationTh;
   params.validate = validate;
   params.treatJunctions = treatJunctions;
+  params.boundaryGradTh = boundaryGradTh;
+  params.boundaryAngleTh = boundaryAngleTh;
+  params.boundaryMinLength = boundaryMinLength;
+  params.markingGradTh = markingGradTh;
+  params.markingAngleTh = markingAngleTh;
+  params.markingMinLength = markingMinLength;
 
   ELSED elsed(params);
   upm::SalientSegments salient_segs = elsed.detectSalient(img);
@@ -80,6 +92,7 @@ py::tuple compute_elsed(const py::array &py_img,
   return salient_segments_to_py(salient_segs);
 }
 
+// TODO: Make new function bind to compute the segment classification with the gradients as inputs
 PYBIND11_MODULE(pyelsed, m) {
   m.def("detect", &compute_elsed, R"pbdoc(
         Computes ELSED: Enhanced Line SEgment Drawing in the input image.
@@ -92,6 +105,12 @@ PYBIND11_MODULE(pyelsed, m) {
         py::arg("pxToSegmentDistTh") = 1.5,
         py::arg("validationTh") = 0.15,
         py::arg("validate") = true,
-        py::arg("treatJunctions") = true
+        py::arg("treatJunctions") = true,
+        py::arg("boundaryGradTh") = 27.78332309,
+        py::arg("boundaryAngleTh") = 51.21788891,
+        py::arg("boundaryMinLength") = 95,
+        py::arg("markingGradTh") = 32.17114637,
+        py::arg("markingAngleTh") = 29.69457975,
+        py::arg("markingMinLength") = 104
   );
 }

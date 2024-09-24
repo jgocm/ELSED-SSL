@@ -17,6 +17,19 @@ class SegmentsAnalyzer():
         self.RED =   np.array([0, 0, 255])
         self.BLACK = np.array([0, 0, 0])
 
+    def detect(self, img, sigma = 1, gradientThreshold = 30, minLineLen = 15, boundaryGradTh = 28, boundaryAngleTh = 51, boundaryMinLength = 95, markingGradTh = 32, markingAngleTh = 30, markingMinLength = 104):
+        return self.segments_detector.detect(img,
+                                             sigma = sigma,
+                                             gradientThreshold = gradientThreshold,
+                                             minLineLen = minLineLen,
+                                             boundaryGradTh = boundaryGradTh, 
+                                             boundaryAngleTh = boundaryAngleTh, 
+                                             boundaryMinLength = boundaryMinLength, 
+                                             markingGradTh = markingGradTh, 
+                                             markingAngleTh = markingAngleTh, 
+                                             markingMinLength = markingMinLength)
+        
+
     def get_line_parameters_from_endpoints(self, p1, p2):
         length = np.linalg.norm(p2-p1)
         r = (p2-p1)/length
@@ -171,3 +184,63 @@ class SegmentsAnalyzer():
                             np.abs(proj_angle)<angle_threshold and 
                             l>min_segment_length)
         return is_field_marking
+
+if __name__ ==  "__main__":
+
+    dataset_path = '/home/joao-dt/ssl-navigation-dataset'
+    scenarios = ['rnd', 'sqr', 'igs']
+    rounds = 3
+    max_img_nr = 2000
+
+    boundary_thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
+    marking_thresholds_path = 'annotations/optimal_marking_thresholds.npy'
+    
+    boundary_thresholds = np.load(boundary_thresholds_path)
+    print(boundary_thresholds)
+    marking_thresholds = np.load(marking_thresholds_path)
+    print(marking_thresholds)
+
+    boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
+    marking_grad_th,  marking_angle_threshold_deg,  marking_min_seg_len  = marking_thresholds
+
+    analyzer = SegmentsAnalyzer(pyelsed)
+
+    while True:
+        original_img, img_path, img_details = analyzer.get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
+        gs_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+        gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
+        dbg_img = original_img.copy()
+        print(f"Img: {img_path}")
+    
+        segments, scores, labels, grads_x, grads_y = analyzer.detect(original_img, 
+                                                                     boundaryGradTh=boundary_grad_th,
+                                                                     boundaryAngleTh=boundary_angle_threshold_deg,
+                                                                     boundaryMinLength=boundary_min_seg_len,
+                                                                     markingGradTh=marking_grad_th,
+                                                                     markingAngleTh=marking_angle_threshold_deg,
+                                                                     markingMinLength=marking_min_seg_len)
+
+        for s, label, grad_x, grad_y in zip(segments.astype(np.int32), labels, grads_x, grads_y):
+            line_points = analyzer.get_bresenham_line_points(s)
+        
+            is_field_boundary = (label==1)
+            is_field_marking = (label==2)
+
+            for p in line_points:
+                x, y = p
+                gs_img[y, x] = analyzer.RED
+                
+                if is_field_marking:
+                    dbg_img[y, x] = analyzer.RED
+                elif is_field_boundary:
+                    dbg_img[y, x] = analyzer.GREEN                    
+                else:
+                    dbg_img[y, x] = analyzer.BLACK
+
+        cv2.imshow('elsed', gs_img)
+        cv2.imshow('elsed-ssl', dbg_img)
+
+        key = cv2.waitKey(0) & 0xFF
+
+        if key==ord('q'):
+            break

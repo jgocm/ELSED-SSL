@@ -5,6 +5,7 @@ from scipy.signal import convolve2d
 import random
 import os
 import time
+from elsed_analyzer import *
 
 
 WHITE = np.array([255, 255, 255])
