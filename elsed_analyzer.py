@@ -6,8 +6,13 @@ import random
 import os
 
 class SegmentsAnalyzer():
+    boundary_thresholds = [27.78332309, 51.21788891, 95.33978007]
+    marking_thresholds  = [32.17114637, 29.69457975, 104.8096455]
+
     def __init__(self,
-                 segments_detector = pyelsed):
+                 segments_detector = pyelsed,
+                 boundary_thresholds = boundary_thresholds,
+                 marking_thresholds = marking_thresholds):
         
         self.segments_detector = segments_detector
             
@@ -17,18 +22,36 @@ class SegmentsAnalyzer():
         self.RED =   np.array([0, 0, 255])
         self.BLACK = np.array([0, 0, 0])
 
-    def detect(self, img, sigma = 1, gradientThreshold = 30, minLineLen = 15, boundaryGradTh = 28, boundaryAngleTh = 51, boundaryMinLength = 95, markingGradTh = 32, markingAngleTh = 30, markingMinLength = 104):
+        self.boundary_thresholds = boundary_thresholds
+        self.marking_thresholds = marking_thresholds
+
+    def detect(self, img, sigma = 1, gradientThreshold = 30, minLineLen = 15):
+        boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = self.boundary_thresholds
+        markings_grad_th, markings_angle_threshold_deg, markings_min_seg_len = self.marking_thresholds        
         return self.segments_detector.detect(img,
                                              sigma = sigma,
                                              gradientThreshold = gradientThreshold,
                                              minLineLen = minLineLen,
-                                             boundaryGradTh = boundaryGradTh, 
-                                             boundaryAngleTh = boundaryAngleTh, 
-                                             boundaryMinLength = boundaryMinLength, 
-                                             markingGradTh = markingGradTh, 
-                                             markingAngleTh = markingAngleTh, 
-                                             markingMinLength = markingMinLength)
-        
+                                             boundaryGradTh = boundary_grad_th, 
+                                             boundaryAngleTh = boundary_angle_threshold_deg, 
+                                             boundaryMinLength = boundary_min_seg_len, 
+                                             markingGradTh = markings_grad_th, 
+                                             markingAngleTh = markings_angle_threshold_deg, 
+                                             markingMinLength = markings_min_seg_len)
+
+    def classify(self, grad_x, grad_y, segment_length):
+        boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = self.boundary_thresholds
+        markings_grad_th, markings_angle_threshold_deg, markings_min_seg_len = self.marking_thresholds
+        return self.segments_detector.classify(grad_x,
+                                               grad_y,
+                                               segment_length,
+                                               boundaryGradTh = boundary_grad_th, 
+                                               boundaryAngleTh = boundary_angle_threshold_deg, 
+                                               boundaryMinLength = boundary_min_seg_len, 
+                                               markingGradTh = markings_grad_th, 
+                                               markingAngleTh = markings_angle_threshold_deg, 
+                                               markingMinLength = markings_min_seg_len)
+
 
     def get_line_parameters_from_endpoints(self, p1, p2):
         length = np.linalg.norm(p2-p1)
@@ -203,7 +226,9 @@ if __name__ ==  "__main__":
     boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
     marking_grad_th,  marking_angle_threshold_deg,  marking_min_seg_len  = marking_thresholds
 
-    analyzer = SegmentsAnalyzer(pyelsed)
+    analyzer = SegmentsAnalyzer(pyelsed,
+                                boundary_thresholds,
+                                marking_thresholds)
 
     while True:
         original_img, img_path, img_details = analyzer.get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
@@ -212,17 +237,11 @@ if __name__ ==  "__main__":
         dbg_img = original_img.copy()
         print(f"Img: {img_path}")
     
-        segments, scores, labels, grads_x, grads_y = analyzer.detect(original_img, 
-                                                                     boundaryGradTh=boundary_grad_th,
-                                                                     boundaryAngleTh=boundary_angle_threshold_deg,
-                                                                     boundaryMinLength=boundary_min_seg_len,
-                                                                     markingGradTh=marking_grad_th,
-                                                                     markingAngleTh=marking_angle_threshold_deg,
-                                                                     markingMinLength=marking_min_seg_len)
+        segments, scores, labels, grads_x, grads_y = analyzer.detect(original_img)
 
-        for s, label, grad_x, grad_y in zip(segments.astype(np.int32), labels, grads_x, grads_y):
+        for s, score, label, grad_x, grad_y in zip(segments.astype(np.int32), scores, labels, grads_x, grads_y):
             line_points = analyzer.get_bresenham_line_points(s)
-        
+            
             is_field_boundary = (label==1)
             is_field_marking = (label==2)
 
@@ -239,8 +258,8 @@ if __name__ ==  "__main__":
 
         cv2.imshow('elsed', gs_img)
         cv2.imshow('elsed-ssl', dbg_img)
-
+        
         key = cv2.waitKey(0) & 0xFF
 
         if key==ord('q'):
-            break
+            quit()

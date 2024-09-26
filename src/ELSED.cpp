@@ -286,10 +286,7 @@ bool checkMarkingClassification(upm::Gradient &g_BGR,
     return is_field_marking;
 }
 
-int ELSED::isFieldFeature(upm::Gradient g_BGRx, upm::Gradient  g_BGRy, float saliency) {
-    // Compute gradients
-    //auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
-
+int isFieldFeature(upm::Gradient g_BGRx, upm::Gradient  g_BGRy, float saliency, ELSEDParams params) {
     // Check boundary classification for g_BGRy
     if (checkBoundaryClassification(g_BGRy, saliency, params.boundaryGradTh, params.boundaryAngleTh, params.boundaryMinLength)) return FIELD_BOUNDARY;
     // std::cout << "Boundary classification y-axis: " << std::boolalpha << is_boundary << std::endl;
@@ -554,7 +551,7 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
       const Segment &endpoints = detectedSeg.getEndpoints();
       auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
       //std::cout << "gradient x: " << g_BGRx << std::endl;
-      seg_classification = isFieldFeature(g_BGRx, -g_BGRy, saliency);
+      seg_classification = isFieldFeature(g_BGRx, -g_BGRy, saliency, params);
       segments.push_back(endpoints);
       salientSegments.emplace_back(endpoints, saliency, seg_classification, g_BGRx, g_BGRy);
     }

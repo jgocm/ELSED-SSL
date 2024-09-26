@@ -5,7 +5,6 @@ import pandas as pd
 from elsed_analyzer import SegmentsAnalyzer
 
 if __name__ == "__main__":
-    analyzer = SegmentsAnalyzer(pyelsed)
     annotations_path = 'annotations/segments_annotations.csv'
     boundary_thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
     marking_thresholds_path = 'annotations/optimal_marking_thresholds.npy'
@@ -19,6 +18,10 @@ if __name__ == "__main__":
     # CONFIG THRESHOLDS
     boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
     markings_grad_th, markings_angle_threshold_deg, markings_min_seg_len = marking_thresholds
+    
+    analyzer = SegmentsAnalyzer(pyelsed,
+                                boundary_thresholds,
+                                marking_thresholds)
     
     precision, recall, TP_count, FP_count, FN_count = 0, 0, 0, 0, 0
     

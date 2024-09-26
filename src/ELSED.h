@@ -56,6 +56,8 @@ struct ELSEDParams {
 
 };
 
+int isFieldFeature(upm::Gradient g_BGRx, upm::Gradient g_BGRy, float saliency, ELSEDParams params);
+
 /**
  * This class implements the method:
  *     @cite Suárez, I., Buenaposada, J. M., & Baumela, L. (2021).
@@ -88,8 +90,6 @@ class ELSED {
   void processImage(const cv::Mat &image);
 
   void clear();
-
-  int isFieldFeature(upm::Gradient g_BGRx, upm::Gradient  g_BGRy, float saliency);
 
   static void computeAnchorPoints(const cv::Mat &dirImage,
                                   const cv::Mat &gradImageWO,
