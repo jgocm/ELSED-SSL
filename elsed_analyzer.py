@@ -241,7 +241,6 @@ def test_on_random_image_from_dataset():
             line_points = analyzer.get_bresenham_line_points(s)
 
             label_test = analyzer.classify(grad_x, -grad_y, score)
-            print(label, label_test)
             
             is_field_boundary = (label==1)
             is_field_marking = (label==2)
@@ -296,14 +295,14 @@ def test_with_annotations():
         is_field_boundary_gt = row['is_field_boundary']
         is_field_marking_gt = row['is_field_marking']
 
-        gx = np.array([row['grad_Bx'],row['grad_Gx'],row['grad_Rx']])
-        gy = np.array([row['grad_By'],row['grad_Gy'],row['grad_Ry']])
+        grad_x = np.array([row['grad_Bx'],row['grad_Gx'],row['grad_Rx']], dtype=np.float32)
+        grad_y = np.array([row['grad_By'],row['grad_Gy'],row['grad_Ry']], dtype=np.float32)
         segment_length = row['segment_length']
 
         line_points = analyzer.get_bresenham_line_points(segment)
         
         # this approach is not working, probably there is some issue with the annotations
-        label = analyzer.classify(gx, -gy, segment_length)
+        label = analyzer.classify(grad_x, -grad_y, segment_length)
 
         is_field_boundary = (label==1)
         is_field_marking = (label==2)
