@@ -24,6 +24,7 @@ class SegmentsAnalyzer():
 
         self.boundary_thresholds = boundary_thresholds
         self.marking_thresholds = marking_thresholds
+        #print(self.boundary_thresholds, self.marking_thresholds)
 
     def detect(self, img, sigma = 1, gradientThreshold = 30, minLineLen = 15):
         boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = self.boundary_thresholds
@@ -208,8 +209,7 @@ class SegmentsAnalyzer():
                             l>min_segment_length)
         return is_field_marking
 
-if __name__ ==  "__main__":
-
+def test_on_random_image_from_dataset():
     dataset_path = '/home/joao-dt/ssl-navigation-dataset'
     scenarios = ['rnd', 'sqr', 'igs']
     rounds = 3
@@ -219,16 +219,14 @@ if __name__ ==  "__main__":
     marking_thresholds_path = 'annotations/optimal_marking_thresholds.npy'
     
     boundary_thresholds = np.load(boundary_thresholds_path)
-    print(boundary_thresholds)
+    #print(boundary_thresholds)
     marking_thresholds = np.load(marking_thresholds_path)
-    print(marking_thresholds)
+    #print(marking_thresholds)
 
     boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
     marking_grad_th,  marking_angle_threshold_deg,  marking_min_seg_len  = marking_thresholds
 
-    analyzer = SegmentsAnalyzer(pyelsed,
-                                boundary_thresholds,
-                                marking_thresholds)
+    analyzer = SegmentsAnalyzer(pyelsed)
 
     while True:
         original_img, img_path, img_details = analyzer.get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
@@ -241,6 +239,9 @@ if __name__ ==  "__main__":
 
         for s, score, label, grad_x, grad_y in zip(segments.astype(np.int32), scores, labels, grads_x, grads_y):
             line_points = analyzer.get_bresenham_line_points(s)
+
+            label_test = analyzer.classify(grad_x, -grad_y, score)
+            print(label, label_test)
             
             is_field_boundary = (label==1)
             is_field_marking = (label==2)
@@ -263,3 +264,70 @@ if __name__ ==  "__main__":
 
         if key==ord('q'):
             quit()
+
+def test_with_annotations():
+    import pandas as pd
+
+    annotations_path = 'annotations/segments_annotations.csv'
+    boundary_thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
+    marking_thresholds_path = 'annotations/optimal_marking_thresholds.npy'
+    df = pd.read_csv(annotations_path)
+    
+    boundary_thresholds = np.load(boundary_thresholds_path)
+    #print(boundary_thresholds)
+    marking_thresholds = np.load(marking_thresholds_path)
+    #print(marking_thresholds)
+
+    boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
+    marking_grad_th,  marking_angle_threshold_deg,  marking_min_seg_len  = marking_thresholds
+
+    analyzer = SegmentsAnalyzer(pyelsed)
+
+    for index, row in df.iterrows():
+        img_path = row['img_path']
+        original_img = cv2.imread(img_path)
+        gs_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+        gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
+        dbg_img = original_img.copy()
+        print(f"Img: {img_path}")
+    
+
+        segment = np.array([row['x0'], row['y0'], row['x1'], row['y1']], dtype=np.int32)
+        is_field_boundary_gt = row['is_field_boundary']
+        is_field_marking_gt = row['is_field_marking']
+
+        gx = np.array([row['grad_Bx'],row['grad_Gx'],row['grad_Rx']])
+        gy = np.array([row['grad_By'],row['grad_Gy'],row['grad_Ry']])
+        segment_length = row['segment_length']
+
+        line_points = analyzer.get_bresenham_line_points(segment)
+        
+        # this approach is not working, probably there is some issue with the annotations
+        label = analyzer.classify(gx, -gy, segment_length)
+
+        is_field_boundary = (label==1)
+        is_field_marking = (label==2)
+
+        for p in line_points:
+            x, y = p
+            gs_img[y, x] = analyzer.RED
+            
+            if is_field_marking:
+                dbg_img[y, x] = analyzer.RED
+            elif is_field_boundary:
+                dbg_img[y, x] = analyzer.GREEN                    
+            else:
+                dbg_img[y, x] = analyzer.BLACK
+
+        cv2.imshow('elsed', gs_img)
+        cv2.imshow('elsed-ssl', dbg_img)
+        
+        key = cv2.waitKey(0) & 0xFF
+
+        if key==ord('q'):
+            quit()
+
+if __name__ ==  "__main__":
+    #test_on_random_image_from_dataset()
+
+    test_with_annotations()
