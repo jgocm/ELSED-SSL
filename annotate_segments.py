@@ -31,9 +31,9 @@ if __name__ == "__main__":
         original_img, img_path, img_details = analyzer.get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
         print(f"Img: {img_path}")
         
-        segments, _, _, grads_x, grads_y = analyzer.segments_detector.detect(original_img, 1, 30, 40)
+        segments, scores, labels, grads_x, grads_y = analyzer.segments_detector.detect(original_img, 1, 30, 40)
         
-        for s, grad_x, grad_y in zip(segments.astype(np.int32), grads_x, grads_y):
+        for s, score, label, grad_x, grad_y in zip(segments.astype(np.int32), scores, labels, grads_x, grads_y):
             dbg_img = original_img.copy()
 
             x0, y0, x1, y1 = s[0], s[1], s[2], s[3]
@@ -54,7 +54,7 @@ if __name__ == "__main__":
             grad_Gy = grad_y[1]
             grad_Ry = grad_y[2]
 
-            segment_length = len(line_points)
+            segment_length = score[0]
 
             cv2.imshow('elsed segments', dbg_img)
             key = cv2.waitKey(0) & 0xFF
