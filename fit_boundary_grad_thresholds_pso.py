@@ -50,7 +50,7 @@ if __name__ == "__main__":
     thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
 
     # Run PSO to optimize the thresholds
-    optimal_thresholds, optimal_mAP = pso(calculate_map, lb, ub, swarmsize=50, maxiter=10)
+    optimal_thresholds, optimal_mAP = pso(calculate_map, lb, ub, swarmsize=100, maxiter=10, omega=0.1)
 
     # Print the optimal thresholds and the corresponding mAP
     print(f'Optimal thresholds: {optimal_thresholds}')
