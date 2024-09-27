@@ -42,17 +42,18 @@ def calculate_map(thresholds):
 
     return -(TP_count - FP_count)
 
-# Define the bounds for the thresholds
-lb = [10, 20, 50]  # Lower bounds
-ub = [255, 70, 300]  # Upper bounds
+if __name__ == "__main__":
+    # Define the bounds for the thresholds
+    lb = [10, 20, 50]  # Lower bounds
+    ub = [255, 70, 300]  # Upper bounds
 
-thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
+    thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
 
-# Run PSO to optimize the thresholds
-optimal_thresholds, optimal_mAP = pso(calculate_map, lb, ub, swarmsize=50, maxiter=10)
+    # Run PSO to optimize the thresholds
+    optimal_thresholds, optimal_mAP = pso(calculate_map, lb, ub, swarmsize=50, maxiter=10)
 
-# Print the optimal thresholds and the corresponding mAP
-print(f'Optimal thresholds: {optimal_thresholds}')
-print(f'Optimal mAP: {-optimal_mAP}')  # Negate again to get the positive mAP
+    # Print the optimal thresholds and the corresponding mAP
+    print(f'Optimal thresholds: {optimal_thresholds}')
+    print(f'Optimal mAP: {-optimal_mAP}')  # Negate again to get the positive mAP
 
-np.save(thresholds_path, optimal_thresholds)
+    np.save(thresholds_path, optimal_thresholds)
