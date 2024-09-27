@@ -301,7 +301,6 @@ def test_with_annotations():
 
         line_points = analyzer.get_bresenham_line_points(segment)
         
-        # this approach is not working, probably there is some issue with the annotations
         label = analyzer.classify(grad_x, -grad_y, segment_length)
 
         is_field_boundary = (label==1)

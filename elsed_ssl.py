@@ -128,6 +128,7 @@ def check_marking_classification(g, l):
     return is_field_marking
 
 if __name__ == "__main__":
+    # TODO: refactor this script to use analyzer class
     dataset_path = '/home/joao-dt/ssl-navigation-dataset'
     scenarios = ['rnd', 'sqr', 'igs']
     rounds = 3
