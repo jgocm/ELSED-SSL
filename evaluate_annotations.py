@@ -22,9 +22,7 @@ if __name__ == "__main__":
     analyzer = SegmentsAnalyzer(pyelsed,
                                 boundary_thresholds,
                                 marking_thresholds)
-    
-    analyzer = SegmentsAnalyzer(pyelsed)
-    
+        
     precision, recall, TP_count, FP_count, FN_count = 0, 0, 0, 0, 0
     
     for index, row in df.iterrows():
@@ -36,8 +34,8 @@ if __name__ == "__main__":
         is_field_boundary_gt = row['is_field_boundary']
         is_field_marking_gt = row['is_field_marking']
         
-        gx = np.array([row['grad_Bx'],row['grad_Gx'],row['grad_Rx']])
-        gy = np.array([row['grad_By'],row['grad_Gy'],row['grad_Ry']])
+        gx = np.array([row['grad_Bx'],row['grad_Gx'],row['grad_Rx']], dtype=np.float32)
+        gy = np.array([row['grad_By'],row['grad_Gy'],row['grad_Ry']], dtype=np.float32)
         segment_length = row['segment_length']
 
         line_points = analyzer.get_bresenham_line_points(segment)
@@ -84,11 +82,11 @@ if __name__ == "__main__":
             print(f'            Boundary  Marking')
             print(f'Inference:    {is_field_boundary},   {is_field_marking}')
             print(f'Ground truth: {is_field_boundary_gt},   {is_field_marking_gt}')
-            #key = cv2.waitKey(0) & 0xFF
+            key = cv2.waitKey(0) & 0xFF
         else:
             key = cv2.waitKey(1) & 0xFF
         
         if key==ord('q'):
             break
     
-    print(f'Precision: {precision}, Recall: {recall}, TP: {TP_count}, FP: {FP_count}, FN: {FN_count}, total lines: {index+1}')
+    print(f'Precision: {precision:.3f}, Recall: {recall:.3f}, TP: {TP_count}, FP: {FP_count}, FN: {FN_count}, total lines: {index+1}')

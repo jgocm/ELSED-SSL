@@ -273,14 +273,14 @@ def test_with_annotations():
     df = pd.read_csv(annotations_path)
     
     boundary_thresholds = np.load(boundary_thresholds_path)
-    #print(boundary_thresholds)
     marking_thresholds = np.load(marking_thresholds_path)
-    #print(marking_thresholds)
+    print(boundary_thresholds)
+    print(marking_thresholds)
 
     boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
     marking_grad_th,  marking_angle_threshold_deg,  marking_min_seg_len  = marking_thresholds
 
-    analyzer = SegmentsAnalyzer(pyelsed)
+    analyzer = SegmentsAnalyzer(pyelsed, boundary_thresholds, marking_thresholds)
 
     for index, row in df.iterrows():
         img_path = row['img_path']

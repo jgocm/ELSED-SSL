@@ -11,13 +11,13 @@ def calculate_map(thresholds):
     
     analyzer = SegmentsAnalyzer(pyelsed, marking_thresholds=thresholds)
     dataset_path = 'annotations/segments_annotations.csv'
-    df = pd.read_csv(dataset_path)[:100]
+    df = pd.read_csv(dataset_path)[:]
     
     mAP, TP_count, FP_count = 0, 0, 0
 
     for index, row in df.iterrows():
-        gx = np.array([row['grad_Bx'], row['grad_Gx'], row['grad_Rx']])
-        gy = np.array([row['grad_By'], row['grad_Gy'], row['grad_Ry']])
+        gx = np.array([row['grad_Bx'], row['grad_Gx'], row['grad_Rx']], dtype=np.float32)
+        gy = np.array([row['grad_By'], row['grad_Gy'], row['grad_Ry']], dtype=np.float32)
         segment_length = row['segment_length']
         is_field_marking_gt = row['is_field_marking']
         
@@ -37,7 +37,7 @@ def calculate_map(thresholds):
     if TP_count + FP_count > 0:
         mAP = TP_count / (TP_count + FP_count)
     
-    print(f'thresholds: {thresholds} | mAP: {mAP}')
+    print(f'thresholds: {thresholds} | TP_count: {TP_count} | FP_count: {FP_count}')
 
     return -(TP_count - FP_count)
 

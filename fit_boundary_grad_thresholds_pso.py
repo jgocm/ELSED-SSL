@@ -11,18 +11,18 @@ def calculate_map(thresholds):
     
     analyzer = SegmentsAnalyzer(pyelsed, boundary_thresholds=thresholds)
     dataset_path = 'annotations/segments_annotations.csv'
-    df = pd.read_csv(dataset_path)[:100]
+    df = pd.read_csv(dataset_path)[:]
     
     mAP, TP_count, FP_count = 0, 0, 0
 
     for index, row in df.iterrows():
-        gx = np.array([row['grad_Bx'], row['grad_Gx'], row['grad_Rx']])
-        gy = np.array([row['grad_By'], row['grad_Gy'], row['grad_Ry']])
+        gx = np.array([row['grad_Bx'], row['grad_Gx'], row['grad_Rx']], dtype=np.float32)
+        gy = np.array([row['grad_By'], row['grad_Gy'], row['grad_Ry']], dtype=np.float32)
         segment_length = row['segment_length']
         is_field_boundary_gt = row['is_field_boundary']
         
         analyzer.boundary_thresholds = thresholds
-        label = analyzer.classify(gx, -gy, 10)
+        label = analyzer.classify(gx, -gy, segment_length)
         
         is_field_boundary = (label==1)
         

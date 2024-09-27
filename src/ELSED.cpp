@@ -287,7 +287,7 @@ bool checkMarkingClassification(upm::Gradient &g_BGR,
 }
 
 int isFieldFeature(upm::Gradient g_BGRx, upm::Gradient  g_BGRy, float saliency, ELSEDParams params) {
-   
+
     // Check boundary classification for g_BGRy
     if (checkBoundaryClassification(g_BGRy, saliency, params.boundaryGradTh, params.boundaryAngleTh, params.boundaryMinLength)) return FIELD_BOUNDARY;
     // std::cout << "Boundary classification y-axis: " << std::boolalpha << is_boundary << std::endl;
