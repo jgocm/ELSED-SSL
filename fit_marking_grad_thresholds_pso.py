@@ -6,14 +6,12 @@ from elsed_analyzer import SegmentsAnalyzer
 from pyswarm import pso
 
 # Define the function to calculate mAP given a set of thresholds
-def calculate_map(thresholds):
-    marking_grad_th, marking_angle_threshold_deg, marking_min_seg_len = thresholds
-    
+def calculate_map(thresholds):    
     analyzer = SegmentsAnalyzer(pyelsed, marking_thresholds=thresholds)
     dataset_path = 'annotations/segments_annotations.csv'
     df = pd.read_csv(dataset_path)[:]
     
-    mAP, TP_count, FP_count = 0, 0, 0
+    TP_count, FP_count = 0, 0
 
     for index, row in df.iterrows():
         gx = np.array([row['grad_Bx'], row['grad_Gx'], row['grad_Rx']], dtype=np.float32)
@@ -33,11 +31,8 @@ def calculate_map(thresholds):
             
         if is_false_positive: 
             FP_count += 1
-        
-    if TP_count + FP_count > 0:
-        mAP = TP_count / (TP_count + FP_count)
     
-    print(f'thresholds: {thresholds} | TP_count: {TP_count} | FP_count: {FP_count}')
+    print(f'thresholds: {thresholds} | TP: {TP_count} | FP: {FP_count} | Score: {TP_count - FP_count}')
 
     return -(TP_count - FP_count)
 
@@ -49,10 +44,10 @@ if __name__ == "__main__":
     thresholds_path = 'annotations/optimal_marking_thresholds.npy'
 
     # Run PSO to optimize the thresholds
-    optimal_thresholds, optimal_mAP = pso(calculate_map, lb, ub, swarmsize=100, maxiter=10, omega=0.1)
+    optimal_thresholds, optimal_score = pso(calculate_map, lb, ub, swarmsize=100, maxiter=10, omega=0.1)
 
     # Print the optimal thresholds and the corresponding mAP
     print(f'Optimal thresholds: {optimal_thresholds}')
-    print(f'Optimal mAP: {-optimal_mAP}')  # Negate again to get the positive mAP
+    print(f'Optimal score: {-optimal_score}')  # Negate again to get the positive mAP
 
-    np.save(thresholds_path, optimal_thresholds)
+    #np.save(thresholds_path, optimal_thresholds)

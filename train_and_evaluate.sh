@@ -1,0 +1,2 @@
+python3 train_and_evaluate_boundary_thresholds.py
+python3 train_and_evaluate_marking_thresholds.py
