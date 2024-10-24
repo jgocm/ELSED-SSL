@@ -16,11 +16,10 @@ def get_img_from_selected_images(dataset_path, scenario, round, img_nr):
 
 if __name__ == "__main__":
     analyzer = SegmentsAnalyzer()
-    dataset_path = "data/selected_images/original/"
-    annotations_path = "data/selected_images/annotations/segments_annotations.csv"
-    scenario = "sqr"
-    round = 1
-    max_img_nr = 2150
+    dataset_path = "/home/joao-dt/humanoid-dataset/kid"
+    annotations_path = "annotations/humanoid/segments_annotations.csv"
+    image_files = [f for f in os.listdir(dataset_path) if f.endswith(('png', 'jpg', 'jpeg'))]
+
     columns = ['img_path', 
                'x0', 
                'y0', 
@@ -37,11 +36,11 @@ if __name__ == "__main__":
                'is_field_marking',
                'is_not_a_field_feature']
     
-    img_nr = 0
     annotations = []
-    while True:
-        img_nr += 1
-        original_img, img_path = get_img_from_selected_images(dataset_path, scenario, round, img_nr)
+
+    for img_file in image_files:
+        img_path = os.path.join(dataset_path, img_file)
+        original_img = cv2.imread(img_path)
         if original_img is None:
             continue
         print(f"Img: {img_path}")

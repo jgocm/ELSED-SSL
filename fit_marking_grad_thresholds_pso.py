@@ -8,7 +8,7 @@ from pyswarm import pso
 # Define the function to calculate mAP given a set of thresholds
 def calculate_map(thresholds):    
     analyzer = SegmentsAnalyzer(pyelsed, marking_thresholds=thresholds)
-    dataset_path = 'annotations/segments_annotations.csv'
+    dataset_path = "annotations/humanoid/segments_annotations.csv"
     df = pd.read_csv(dataset_path)[:]
     
     TP_count, FP_count = 0, 0
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     lb = [10, 20, 50]  # Lower bounds
     ub = [255, 70, 300]  # Upper bounds
 
-    thresholds_path = 'annotations/optimal_marking_thresholds.npy'
+    thresholds_path = "data/humanoid/annotations/optimal_marking_thresholds.npy"
 
     # Run PSO to optimize the thresholds
     optimal_thresholds, optimal_score = pso(calculate_map, lb, ub, swarmsize=100, maxiter=10, omega=0.1)
