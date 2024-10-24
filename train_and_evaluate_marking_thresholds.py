@@ -79,7 +79,7 @@ if __name__ == "__main__":
     ub = [255, 70, 300]  # Upper bounds
 
     # Load dataset
-    dataset_path = 'annotations/segments_annotations.csv'
+    dataset_path = 'data/selected_images/annotations/segments_annotations.csv'
     df = pd.read_csv(dataset_path)
 
     # Define the min, max percentages and the step for the train set

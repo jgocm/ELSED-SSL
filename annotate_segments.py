@@ -1,15 +1,26 @@
 import numpy as np
 import cv2
+import os
 import pandas as pd
 from elsed_analyzer import SegmentsAnalyzer
 
+def get_img_from_selected_images(dataset_path, scenario, round, img_nr):
+    img_path = dataset_path + f'{scenario}_0{round}_{img_nr}_original.png'
+    if os.path.isfile(img_path):
+        img = cv2.imread(img_path)
+    else:
+        print(f'Img {img_path} not available')
+        img = None
+
+    return img, img_path
+
 if __name__ == "__main__":
     analyzer = SegmentsAnalyzer()
-    dataset_path = "/home/joao-dt/ssl-navigation-dataset"
-    annotations_path = "annotations/segments_annotations.csv"
-    scenarios = ["rnd", "sqr", "igs"]
-    rounds = 3
-    max_img_nr = 2000
+    dataset_path = "data/selected_images/original/"
+    annotations_path = "data/selected_images/annotations/segments_annotations.csv"
+    scenario = "sqr"
+    round = 1
+    max_img_nr = 2150
     columns = ['img_path', 
                'x0', 
                'y0', 
@@ -26,12 +37,16 @@ if __name__ == "__main__":
                'is_field_marking',
                'is_not_a_field_feature']
     
+    img_nr = 0
     annotations = []
     while True:
-        original_img, img_path, img_details = analyzer.get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
+        img_nr += 1
+        original_img, img_path = get_img_from_selected_images(dataset_path, scenario, round, img_nr)
+        if original_img is None:
+            continue
         print(f"Img: {img_path}")
         
-        segments, scores, labels, grads_x, grads_y = analyzer.segments_detector.detect(original_img, 1, 30, 40)
+        segments, scores, labels, grads_x, grads_y = analyzer.detect(original_img, gradientThreshold=30, minLineLen=40)
         
         for s, score, label, grad_x, grad_y in zip(segments.astype(np.int32), scores, labels, grads_x, grads_y):
             dbg_img = original_img.copy()

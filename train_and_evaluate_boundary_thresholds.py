@@ -79,7 +79,7 @@ if __name__ == "__main__":
     ub = [255, 70, 300]  # Upper bounds
 
     # Load dataset
-    dataset_path = 'annotations/segments_annotations.csv'
+    dataset_path = 'data/selected_images/annotations/segments_annotations.csv'
     df = pd.read_csv(dataset_path)
 
     # Define the min, max percentages and the step for the train set
@@ -114,6 +114,8 @@ if __name__ == "__main__":
         print(f'Train Size: {int(100*train_size)}% | Thresholds: {optimal_thresholds}  | Score: {-optimal_score}')
 
     # Evaluate thresholds on the test set
+    dataset_path = 'annotations/segments_annotations.csv'
+    df = pd.read_csv(dataset_path)
     _, test_df = train_test_split(df, train_size=max_percentage, random_state=42)
     for idx, (train_size, thresholds) in enumerate(zip(train_sizes, thresholds_list)):
         
