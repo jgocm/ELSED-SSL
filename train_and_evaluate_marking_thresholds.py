@@ -79,7 +79,7 @@ if __name__ == "__main__":
     ub = [255, 70, 300]  # Upper bounds
 
     # Load dataset
-    dataset_path = "annotations/humanoid/segments_annotations.csv"
+    dataset_path = 'annotations/selected_images/segments_annotations.csv'
     df = pd.read_csv(dataset_path)
 
     # Define the min, max percentages and the step for the train set
@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
     # Train thresholds for different train set sizes
     for idx, train_size in enumerate(train_sizes):
-        thresholds_path = f"annotations/humanoid/marking_thresholds_{int(100*train_size)}.npy"
+        thresholds_path = f'annotations/selected_images/marking_thresholds_{int(100*train_size)}.npy'
 
         train_df, _ = train_test_split(df, train_size=train_size, random_state=42)
         
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         print(f'Train Size: {int(100*train_size)}% | Thresholds: {optimal_thresholds}  | Score: {-optimal_score}')
 
         np.save(thresholds_path, optimal_thresholds)
-
+        
     # Evaluate thresholds on the test set
     _, test_df = train_test_split(df, train_size=max_percentage, random_state=42)
     for idx, (train_size, thresholds) in enumerate(zip(train_sizes, thresholds_list)):

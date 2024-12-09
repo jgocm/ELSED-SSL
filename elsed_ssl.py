@@ -6,12 +6,12 @@ from elsed_analyzer import SegmentsAnalyzer
 
 if __name__ == "__main__":
     dataset_path = '/home/joao-dt/ssl-navigation-dataset'
-    scenarios = ['sqr']
-    rounds = 1
+    scenarios = ['igs', 'sqr', 'rnd']
+    rounds = 3
     max_img_nr = 2000
 
-    boundary_thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
-    marking_thresholds_path = 'annotations/optimal_marking_thresholds.npy'
+    boundary_thresholds_path = 'annotations/selected_images/boundary_thresholds_50.npy'
+    marking_thresholds_path = 'annotations/selected_images/marking_thresholds_50.npy'
     
     boundary_thresholds = np.load(boundary_thresholds_path)
     marking_thresholds = np.load(marking_thresholds_path)
@@ -28,8 +28,8 @@ if __name__ == "__main__":
     while True:
         #original_img, img_path = get_img_from_dataset(dataset_path, 'rnd', 2, 1566) # this frame is problematic -> test with it
         
-        #original_img, img_path, img_details = analyzer.get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
-        original_img, img_path = analyzer.get_img_from_dataset(dataset_path, scenario, round, img_nr)
+        original_img, img_path, img_details = analyzer.get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
+        #original_img, img_path = analyzer.get_img_from_dataset(dataset_path, scenario, round, img_nr)
         gs_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
         gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
         dbg_img = original_img.copy()
