@@ -3,21 +3,13 @@ import cv2
 import os
 import pandas as pd
 from elsed_analyzer import SegmentsAnalyzer
-
-def get_img_from_selected_images(dataset_path, scenario, round, img_nr):
-    img_path = dataset_path + f'{scenario}_0{round}_{img_nr}_original.png'
-    if os.path.isfile(img_path):
-        img = cv2.imread(img_path)
-    else:
-        print(f'Img {img_path} not available')
-        img = None
-
-    return img, img_path
+import utils
 
 if __name__ == "__main__":
     analyzer = SegmentsAnalyzer()
-    dataset_path = "/home/joao-dt/humanoid-dataset/kid"
-    annotations_path = "annotations/humanoid/segments_annotations.csv"
+    paths = utils.load_paths_from_config_file("configs.json")
+    dataset_path = paths["images"]
+    annotations_path = paths["segments_annotations"]
     image_files = [f for f in os.listdir(dataset_path) if f.endswith(('png', 'jpg', 'jpeg'))]
 
     columns = ['img_path', 

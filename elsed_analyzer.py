@@ -4,6 +4,7 @@ import cv2
 from scipy.signal import convolve2d
 import random
 import os
+import utils
 
 class SegmentsAnalyzer():
     boundary_thresholds = [27.78332309, 51.21788891, 95.33978007]
@@ -267,9 +268,11 @@ def test_on_random_image_from_dataset():
 def test_with_annotations():
     import pandas as pd
 
-    annotations_path = 'annotations/segments_annotations.csv'
-    boundary_thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
-    marking_thresholds_path = 'annotations/optimal_marking_thresholds.npy'
+    paths = utils.load_paths_from_config_file("configs.json")
+    annotations_path = paths["segments_annotations"]
+    boundary_thresholds_path = paths['boundary_thresholds']
+    marking_thresholds_path = paths['marking_thresholds']
+
     df = pd.read_csv(annotations_path)
     
     boundary_thresholds = np.load(boundary_thresholds_path)

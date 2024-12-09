@@ -3,11 +3,14 @@ import numpy as np
 import cv2
 import pandas as pd
 from elsed_analyzer import SegmentsAnalyzer
+import utils
 
 if __name__ == "__main__":
-    annotations_path = 'annotations/segments_annotations.csv'
-    boundary_thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
-    marking_thresholds_path = 'annotations/optimal_marking_thresholds.npy'
+    paths = utils.load_paths_from_config_file("configs.json")
+    dataset_path = paths["images"]
+    annotations_path = paths["segments_annotations"]
+    boundary_thresholds_path = paths['boundary_thresholds']
+    marking_thresholds_path = paths['marking_thresholds']
     df = pd.read_csv(annotations_path)
     
     boundary_thresholds = np.load(boundary_thresholds_path)

@@ -1,4 +1,5 @@
 import pyelsed
+import utils
 import numpy as np
 import pandas as pd
 from elsed_analyzer import SegmentsAnalyzer
@@ -79,8 +80,11 @@ if __name__ == "__main__":
     ub = [255, 70, 300]  # Upper bounds
 
     # Load dataset
-    dataset_path = 'annotations/selected_images/segments_annotations.csv'
-    df = pd.read_csv(dataset_path)
+  # Load dataset
+    configs = utils.load_config_file("configs.json")
+    annotations_path = configs["paths"]["segments_annotations"]
+    dataset_label = configs["dataset_label"]
+    df = pd.read_csv(annotations_path)
 
     # Define the min, max percentages and the step for the train set
     min_percentage = 0.1
@@ -97,12 +101,13 @@ if __name__ == "__main__":
 
     thresholds_list = []
     results_list = []
+    test_df = None
 
     # Train thresholds for different train set sizes
     for idx, train_size in enumerate(train_sizes):
-        thresholds_path = f'annotations/selected_images/marking_thresholds_{int(100*train_size)}.npy'
+        thresholds_path = f'trainings/{dataset_label}/marking_thresholds_{int(100*train_size)}.npy'
 
-        train_df, _ = train_test_split(df, train_size=train_size, random_state=42)
+        train_df, test_df = train_test_split(df, train_size=train_size, random_state=42)
         
         # Run PSO to optimize the thresholds
         optimal_thresholds, optimal_score = pso(calculate_score, lb, ub, args=(train_df,), swarmsize=swarmsize, maxiter=maxiter, omega=omega)
@@ -116,7 +121,6 @@ if __name__ == "__main__":
         np.save(thresholds_path, optimal_thresholds)
         
     # Evaluate thresholds on the test set
-    _, test_df = train_test_split(df, train_size=max_percentage, random_state=42)
     for idx, (train_size, thresholds) in enumerate(zip(train_sizes, thresholds_list)):
         
         precision, recall, TP_count, FP_count, FN_count, total_lines = evaluate(thresholds, test_df)
