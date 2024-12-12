@@ -3,8 +3,8 @@
     "paths":
     {
         "images": "data/humanoid-kid/images",
-        "marking_thresholds":"trainings/humanoid-kid/marking_thresholds_10.npy",
-        "boundary_thresholds":"trainings/humanoid-kid/boundarymarking_thresholds_10.npy",
+        "marking_thresholds":"trainings/humanoid-kid/marking_thresholds_50.npy",
+        "boundary_thresholds":"trainings/humanoid-kid/boundary_thresholds_50.npy",
         "segments_annotations":"trainings/humanoid-kid/segments_annotations.csv"
     }
 }
