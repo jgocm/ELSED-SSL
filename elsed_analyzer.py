@@ -328,7 +328,61 @@ def test_with_annotations():
         if key==ord('q'):
             quit()
 
+def test_with_images_from_folder():
+    import pandas as pd
+
+    paths = utils.load_paths_from_config_file("configs.json")
+    images_path = paths["images"]
+    boundary_thresholds_path = paths['boundary_thresholds']
+    marking_thresholds_path = paths['marking_thresholds']
+    
+    boundary_thresholds = np.load(boundary_thresholds_path)
+    marking_thresholds = np.load(marking_thresholds_path)
+    print(boundary_thresholds)
+    print(marking_thresholds)
+
+    analyzer = SegmentsAnalyzer(pyelsed, boundary_thresholds, marking_thresholds)
+
+    image_files = [f for f in os.listdir(images_path) if f.endswith(('png', 'jpg', 'jpeg'))]
+    for img_file in image_files:
+        img_path = os.path.join(images_path, img_file)
+        original_img = cv2.imread(img_path)
+        gs_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+        gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
+        dbg_img = original_img.copy()
+        print(f"Img: {img_path}")
+    
+        segments, scores, labels, grads_x, grads_y = analyzer.detect(original_img)
+        for s, score, label, grad_x, grad_y in zip(segments.astype(np.int32), scores, labels, grads_x, grads_y):
+            line_points = analyzer.get_bresenham_line_points(s)
+
+            label_test = analyzer.classify(grad_x, -grad_y, score)
+            
+            is_field_boundary = (label==1)
+            is_field_marking = (label==2)
+
+            for p in line_points:
+                x, y = p
+                gs_img[y, x] = analyzer.RED
+                
+                if is_field_marking:
+                    dbg_img[y, x] = analyzer.RED
+                elif is_field_boundary:
+                    dbg_img[y, x] = analyzer.GREEN                    
+                else:
+                    dbg_img[y, x] = analyzer.BLACK
+
+        cv2.imshow('elsed', gs_img)
+        cv2.imshow('elsed-ssl', dbg_img)
+        
+        key = cv2.waitKey(0) & 0xFF
+
+        if key==ord('q'):
+            quit()
+
 if __name__ ==  "__main__":
     #test_on_random_image_from_dataset()
 
-    test_with_annotations()
+    #test_with_annotations()
+
+    test_with_images_from_folder()

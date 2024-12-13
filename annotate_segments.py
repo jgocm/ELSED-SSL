@@ -10,7 +10,23 @@ if __name__ == "__main__":
     paths = utils.load_paths_from_config_file("configs.json")
     dataset_path = paths["images"]
     annotations_path = paths["segments_annotations"]
+
+    directory = os.path.dirname(annotations_path)
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        print(f"Directory '{directory}' has been created.")
+
+    if not os.path.isfile(annotations_path):
+        with open(annotations_path, "w") as file:
+            file.write("img_path,x0,y0,x1,y1,grad_Bx,grad_Gx,grad_Rx,grad_By,grad_Gy,grad_Ry,segment_length,is_field_boundary,is_field_marking,is_not_a_field_feature\n")
+        print(f"File '{annotations_path}' created with the header.")
+    else:
+        print(f"File '{annotations_path}' already exists.")
+
+
     image_files = [f for f in os.listdir(dataset_path) if f.endswith(('png', 'jpg', 'jpeg'))]
+    image_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
 
     columns = ['img_path', 
                'x0', 
@@ -29,7 +45,6 @@ if __name__ == "__main__":
                'is_not_a_field_feature']
     
     annotations = []
-
     for img_file in image_files:
         img_path = os.path.join(dataset_path, img_file)
         original_img = cv2.imread(img_path)
@@ -78,6 +93,9 @@ if __name__ == "__main__":
             elif key==ord('r'):
                 # remove last annotation (in case it was wrong)
                 annotations.pop()
+            elif key==ord('d'):
+                # discard the current line segment
+                continue
             else:
                 if key==ord('b'):
                     # annotate as field boundary
@@ -105,4 +123,6 @@ if __name__ == "__main__":
                 annotations.append(annotation)
                 
                 
-            
+    df = pd.DataFrame(annotations, columns=columns)
+    df.to_csv(annotations_path, mode='a', header=False, index=False)
+    print(f"updated annotations at: {annotations_path}")

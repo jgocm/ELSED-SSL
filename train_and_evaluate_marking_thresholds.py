@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
     # Define the min, max percentages and the step for the train set
     min_percentage = 0.1
-    max_percentage = 0.7
+    max_percentage = 0.5
     step = 0.1
 
     # PSO parameters
