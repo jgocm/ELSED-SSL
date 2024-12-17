@@ -1,10 +1,10 @@
 {
-    "dataset_label": "lines_15pm_lights_on_window_open",
+    "dataset_label": "humanoid-nao",
     "paths":
     {
-        "images": "data/lines_15pm_lights_on_window_open/images",
-        "marking_thresholds":"trainings/lines_15pm_lights_on_window_open/marking_thresholds_50.npy",
-        "boundary_thresholds":"trainings/lines_15pm_lights_on_window_open/boundary_thresholds_50.npy",
-        "segments_annotations":"trainings/lines_15pm_lights_on_window_open/segments_annotations.csv"
+        "images": "data/humanoid-nao/images",
+        "marking_thresholds":"trainings/humanoid-nao/marking_thresholds_40.npy",
+        "boundary_thresholds":"trainings/humanoid-nao/boundary_thresholds_40.npy",
+        "segments_annotations":"trainings/humanoid-nao/segments_annotations.csv"
     }
 }
