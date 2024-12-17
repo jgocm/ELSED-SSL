@@ -13,7 +13,8 @@ class SegmentsAnalyzer():
     def __init__(self,
                  segments_detector = pyelsed,
                  boundary_thresholds = boundary_thresholds,
-                 marking_thresholds = marking_thresholds):
+                 marking_thresholds = marking_thresholds,
+                 draw_on_frames = False):
         
         self.segments_detector = segments_detector
             
@@ -25,12 +26,13 @@ class SegmentsAnalyzer():
 
         self.boundary_thresholds = boundary_thresholds
         self.marking_thresholds = marking_thresholds
+        self.draw_on_frames = draw_on_frames
         #print(self.boundary_thresholds, self.marking_thresholds)
 
     def detect(self, img, sigma = 1, gradientThreshold = 30, minLineLen = 15):
         boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = self.boundary_thresholds
         markings_grad_th, markings_angle_threshold_deg, markings_min_seg_len = self.marking_thresholds        
-        return self.segments_detector.detect(img,
+        result = self.segments_detector.detect(img,
                                              sigma = sigma,
                                              gradientThreshold = gradientThreshold,
                                              minLineLen = minLineLen,
@@ -40,6 +42,29 @@ class SegmentsAnalyzer():
                                              markingGradTh = markings_grad_th, 
                                              markingAngleTh = markings_angle_threshold_deg, 
                                              markingMinLength = markings_min_seg_len)
+        
+        if self.draw_on_frames==True:
+            self.draw_on_frame(img, result)
+
+        return result
+
+    def draw_on_frame(self, frame, result):
+        segments, scores, labels, grads_x, grads_y = result
+        for segment, score, label, grad_x, grad_y in zip(segments.astype(np.int32), scores, labels, grads_x, grads_y):
+            
+            is_field_boundary = (label==1)
+            is_field_marking = (label==2)
+
+
+            if is_field_marking:
+                color = self.RED
+            elif is_field_boundary:
+                color = self.GREEN                    
+            else:
+                color = self.BLACK
+
+            cv2.line(frame, segment[:2], segment[2:], color.tolist(), 2)
+                
 
     def classify(self, grad_x, grad_y, segment_length):
         boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = self.boundary_thresholds

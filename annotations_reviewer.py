@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
         for p in line_points:
             x, y = p
-            dbg_img[y, x] = draw_color
+            dbg_img[y-1:y+2, x-1:x+2] = draw_color
         
         if TP_count+FP_count > 0:
             precision = TP_count/(TP_count+FP_count)
