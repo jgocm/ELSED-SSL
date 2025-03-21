@@ -386,20 +386,17 @@ def test_with_images_from_folder():
             is_field_boundary = (label==1)
             is_field_marking = (label==2)
 
-            for p in line_points:
-                x, y = p
-                gs_img[y, x] = analyzer.RED
-                
-                if is_field_marking:
-                    dbg_img[y, x] = analyzer.RED
-                elif is_field_boundary:
-                    dbg_img[y, x] = analyzer.GREEN                    
-                else:
-                    dbg_img[y, x] = analyzer.BLACK
+            if is_field_marking:
+                cv2.line(dbg_img, s[:2], s[2:], analyzer.RED.tolist(), 2)
+            elif is_field_boundary:
+                cv2.line(dbg_img, s[:2], s[2:], analyzer.GREEN.tolist(), 2)
 
-        cv2.imshow('elsed', gs_img)
-        cv2.imshow('elsed-ssl', dbg_img)
-        
+            cv2.line(gs_img, s[:2], s[2:], analyzer.RED.tolist(), 2)           
+
+        concatenated_image = np.hstack((original_img, gs_img, dbg_img))
+
+        cv2.imshow('result', concatenated_image)
+
         key = cv2.waitKey(0) & 0xFF
 
         if key==ord('q'):
