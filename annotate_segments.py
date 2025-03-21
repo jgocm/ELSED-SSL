@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
 
     image_files = [f for f in os.listdir(dataset_path) if f.endswith(('png', 'jpg', 'jpeg'))]
-    image_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
+    #image_files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))
 
     columns = ['img_path', 
                'x0', 

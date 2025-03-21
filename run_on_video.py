@@ -28,7 +28,6 @@ if __name__ == "__main__":
     output_video_path = f"data/videos/{dataset_label}_processed.mp4"
     cap = cv2.VideoCapture(input_video_path)
 
-
     # Get video properties
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
