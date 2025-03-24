@@ -4,10 +4,17 @@ import cv2
 from scipy.signal import convolve2d
 import random
 import os
+import utils
 
 class SegmentsAnalyzer():
+    boundary_thresholds = [27.78332309, 51.21788891, 95.33978007]
+    marking_thresholds  = [32.17114637, 29.69457975, 104.8096455]
+
     def __init__(self,
-                 segments_detector = pyelsed):
+                 segments_detector = pyelsed,
+                 boundary_thresholds = boundary_thresholds,
+                 marking_thresholds = marking_thresholds,
+                 draw_on_frames = False):
         
         self.segments_detector = segments_detector
             
@@ -16,6 +23,62 @@ class SegmentsAnalyzer():
         self.GREEN = np.array([0, 255, 0])
         self.RED =   np.array([0, 0, 255])
         self.BLACK = np.array([0, 0, 0])
+
+        self.boundary_thresholds = boundary_thresholds
+        self.marking_thresholds = marking_thresholds
+        self.draw_on_frames = draw_on_frames
+        #print(self.boundary_thresholds, self.marking_thresholds)
+
+    def detect(self, img, sigma = 1, gradientThreshold = 30, minLineLen = 15):
+        boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = self.boundary_thresholds
+        markings_grad_th, markings_angle_threshold_deg, markings_min_seg_len = self.marking_thresholds        
+        result = self.segments_detector.detect(img,
+                                             sigma = sigma,
+                                             gradientThreshold = gradientThreshold,
+                                             minLineLen = minLineLen,
+                                             boundaryGradTh = boundary_grad_th, 
+                                             boundaryAngleTh = boundary_angle_threshold_deg, 
+                                             boundaryMinLength = boundary_min_seg_len, 
+                                             markingGradTh = markings_grad_th, 
+                                             markingAngleTh = markings_angle_threshold_deg, 
+                                             markingMinLength = markings_min_seg_len)
+        
+        if self.draw_on_frames==True:
+            self.draw_on_frame(img, result)
+
+        return result
+
+    def draw_on_frame(self, frame, result):
+        segments, scores, labels, grads_x, grads_y = result
+        for segment, score, label, grad_x, grad_y in zip(segments.astype(np.int32), scores, labels, grads_x, grads_y):
+            
+            is_field_boundary = (label==1)
+            is_field_marking = (label==2)
+
+
+            if is_field_marking:
+                color = self.RED
+            elif is_field_boundary:
+                color = self.GREEN                    
+            else:
+                color = self.BLACK
+
+            cv2.line(frame, segment[:2], segment[2:], color.tolist(), 2)
+                
+
+    def classify(self, grad_x, grad_y, segment_length):
+        boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = self.boundary_thresholds
+        markings_grad_th, markings_angle_threshold_deg, markings_min_seg_len = self.marking_thresholds
+        return self.segments_detector.classify(grad_x,
+                                               grad_y,
+                                               segment_length,
+                                               boundaryGradTh = boundary_grad_th, 
+                                               boundaryAngleTh = boundary_angle_threshold_deg, 
+                                               boundaryMinLength = boundary_min_seg_len, 
+                                               markingGradTh = markings_grad_th, 
+                                               markingAngleTh = markings_angle_threshold_deg, 
+                                               markingMinLength = markings_min_seg_len)
+
 
     def get_line_parameters_from_endpoints(self, p1, p2):
         length = np.linalg.norm(p2-p1)
@@ -155,8 +218,8 @@ class SegmentsAnalyzer():
 
     def check_boundary_classification(self, g, l, gradient_threshold=8000, angle_threshold_deg=50, min_segment_length=200):
         angle_threshold = np.deg2rad(angle_threshold_deg)
-        projection = np.dot(g, self.GREEN)
-        proj_angle = np.arccos(projection/(np.linalg.norm(g)*np.linalg.norm(self.GREEN)))
+        projection = np.dot(g, self.GREEN)/np.linalg.norm(self.GREEN)
+        proj_angle = np.arccos(projection/np.linalg.norm(g))
         is_field_boundary = (projection>gradient_threshold and \
                             np.abs(proj_angle)<angle_threshold and \
                             l>min_segment_length)
@@ -164,10 +227,184 @@ class SegmentsAnalyzer():
 
     def check_marking_classification(self, g, l, gradient_threshold=8000, angle_threshold_deg=30, min_segment_length=50):
         angle_threshold = np.deg2rad(angle_threshold_deg)
-        projection = np.dot(g, self.GREEN-self.WHITE)
-        proj_angle = np.arccos(projection/(np.linalg.norm(g)*np.linalg.norm(self.GREEN-self.WHITE)))
+        projection = np.dot(g, self.GREEN-self.WHITE)/np.linalg.norm(self.GREEN-self.WHITE)
+        proj_angle = np.arccos(projection/np.linalg.norm(g))
         if proj_angle>np.pi/2: proj_angle = np.pi-proj_angle
         is_field_marking = (np.abs(projection)>gradient_threshold and \
                             np.abs(proj_angle)<angle_threshold and 
                             l>min_segment_length)
         return is_field_marking
+
+def test_on_random_image_from_dataset():
+    dataset_path = '/home/joao-dt/ssl-navigation-dataset'
+    scenarios = ['rnd', 'sqr', 'igs']
+    rounds = 3
+    max_img_nr = 2000
+
+    boundary_thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
+    marking_thresholds_path = 'annotations/optimal_marking_thresholds.npy'
+    
+    boundary_thresholds = np.load(boundary_thresholds_path)
+    #print(boundary_thresholds)
+    marking_thresholds = np.load(marking_thresholds_path)
+    #print(marking_thresholds)
+
+    boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
+    marking_grad_th,  marking_angle_threshold_deg,  marking_min_seg_len  = marking_thresholds
+
+    analyzer = SegmentsAnalyzer(pyelsed)
+
+    while True:
+        original_img, img_path, img_details = analyzer.get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
+        gs_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+        gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
+        dbg_img = original_img.copy()
+        print(f"Img: {img_path}")
+    
+        segments, scores, labels, grads_x, grads_y = analyzer.detect(original_img)
+
+        for s, score, label, grad_x, grad_y in zip(segments.astype(np.int32), scores, labels, grads_x, grads_y):
+            line_points = analyzer.get_bresenham_line_points(s)
+
+            label_test = analyzer.classify(grad_x, -grad_y, score)
+            
+            is_field_boundary = (label==1)
+            is_field_marking = (label==2)
+
+            for p in line_points:
+                x, y = p
+                gs_img[y, x] = analyzer.RED
+                
+                if is_field_marking:
+                    dbg_img[y, x] = analyzer.RED
+                elif is_field_boundary:
+                    dbg_img[y, x] = analyzer.GREEN                    
+                else:
+                    dbg_img[y, x] = analyzer.BLACK
+
+        cv2.imshow('elsed', gs_img)
+        cv2.imshow('elsed-ssl', dbg_img)
+        
+        key = cv2.waitKey(0) & 0xFF
+
+        if key==ord('q'):
+            quit()
+
+def test_with_annotations():
+    import pandas as pd
+
+    paths = utils.load_paths_from_config_file("configs.json")
+    annotations_path = paths["segments_annotations"]
+    boundary_thresholds_path = paths['boundary_thresholds']
+    marking_thresholds_path = paths['marking_thresholds']
+
+    df = pd.read_csv(annotations_path)
+    
+    boundary_thresholds = np.load(boundary_thresholds_path)
+    marking_thresholds = np.load(marking_thresholds_path)
+    print(boundary_thresholds)
+    print(marking_thresholds)
+
+    boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
+    marking_grad_th,  marking_angle_threshold_deg,  marking_min_seg_len  = marking_thresholds
+
+    analyzer = SegmentsAnalyzer(pyelsed, boundary_thresholds, marking_thresholds)
+
+    for index, row in df.iterrows():
+        img_path = row['img_path']
+        original_img = cv2.imread(img_path)
+        gs_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+        gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
+        dbg_img = original_img.copy()
+        print(f"Img: {img_path}")
+    
+
+        segment = np.array([row['x0'], row['y0'], row['x1'], row['y1']], dtype=np.int32)
+        is_field_boundary_gt = row['is_field_boundary']
+        is_field_marking_gt = row['is_field_marking']
+
+        grad_x = np.array([row['grad_Bx'],row['grad_Gx'],row['grad_Rx']], dtype=np.float32)
+        grad_y = np.array([row['grad_By'],row['grad_Gy'],row['grad_Ry']], dtype=np.float32)
+        segment_length = row['segment_length']
+
+        line_points = analyzer.get_bresenham_line_points(segment)
+        
+        label = analyzer.classify(grad_x, -grad_y, segment_length)
+
+        is_field_boundary = (label==1)
+        is_field_marking = (label==2)
+
+        for p in line_points:
+            x, y = p
+            gs_img[y, x] = analyzer.RED
+            
+            if is_field_marking:
+                dbg_img[y, x] = analyzer.RED
+            elif is_field_boundary:
+                dbg_img[y, x] = analyzer.GREEN                    
+            else:
+                dbg_img[y, x] = analyzer.BLACK
+
+        cv2.imshow('elsed', gs_img)
+        cv2.imshow('elsed-ssl', dbg_img)
+        
+        key = cv2.waitKey(0) & 0xFF
+
+        if key==ord('q'):
+            quit()
+
+def test_with_images_from_folder():
+    import pandas as pd
+
+    paths = utils.load_paths_from_config_file("configs.json")
+    images_path = paths["images"]
+    boundary_thresholds_path = paths['boundary_thresholds']
+    marking_thresholds_path = paths['marking_thresholds']
+    
+    boundary_thresholds = np.load(boundary_thresholds_path)
+    marking_thresholds = np.load(marking_thresholds_path)
+    print(boundary_thresholds)
+    print(marking_thresholds)
+
+    analyzer = SegmentsAnalyzer(pyelsed, boundary_thresholds, marking_thresholds)
+
+    image_files = [f for f in os.listdir(images_path) if f.endswith(('png', 'jpg', 'jpeg'))]
+    for img_file in image_files:
+        img_path = os.path.join(images_path, img_file)
+        original_img = cv2.imread(img_path)
+        gs_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+        gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
+        dbg_img = original_img.copy()
+        print(f"Img: {img_path}")
+    
+        segments, scores, labels, grads_x, grads_y = analyzer.detect(original_img)
+        for s, score, label, grad_x, grad_y in zip(segments.astype(np.int32), scores, labels, grads_x, grads_y):
+            line_points = analyzer.get_bresenham_line_points(s)
+
+            label_test = analyzer.classify(grad_x, -grad_y, score)
+            
+            is_field_boundary = (label==1)
+            is_field_marking = (label==2)
+
+            if is_field_marking:
+                cv2.line(dbg_img, s[:2], s[2:], analyzer.RED.tolist(), 2)
+            elif is_field_boundary:
+                cv2.line(dbg_img, s[:2], s[2:], analyzer.GREEN.tolist(), 2)
+
+            cv2.line(gs_img, s[:2], s[2:], analyzer.RED.tolist(), 2)           
+
+        concatenated_image = np.hstack((original_img, gs_img, dbg_img))
+
+        cv2.imshow('result', concatenated_image)
+
+        key = cv2.waitKey(0) & 0xFF
+
+        if key==ord('q'):
+            quit()
+
+if __name__ ==  "__main__":
+    #test_on_random_image_from_dataset()
+
+    #test_with_annotations()
+
+    test_with_images_from_folder()

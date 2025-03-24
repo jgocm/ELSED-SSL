@@ -74,7 +74,6 @@ void ELSED::processImage(const cv::Mat &_image) {
     computeAnchorPoints(imgInfo->dirImg,
                         imgInfo->gImgWO,
                         imgInfo->gImg,
-                        BGR_image,
                         params.scanIntervals,
                         anchorTh,
                         anchors);
@@ -206,44 +205,46 @@ std::pair<upm::Gradient, upm::Gradient> computeGradientsBGR(const cv::Mat &B, co
   return {g_BGRx, g_BGRy};
 }
 
-bool checkBoundaryClassification(const upm::Gradient &g_BGRy, 
-                                 float gradient_threshold = 6288.33f, 
-                                 float angle_threshold_deg = 52.0f) {
-  // Define the GREEN vector as [0, 255, 0]
-  cv::Vec3f GREEN = {0.0f, 255.0f, 0.0f};
+bool checkBoundaryClassification(const upm::Gradient &g_BGRy,
+                                 float saliency,
+                                 float gradient_threshold = 21.8f, 
+                                 float angle_threshold_deg = 50.52f,
+                                 float min_segment_length = 95) {
+  // Define the GREEN vector as [0, 1, 0]
+  cv::Vec3f GREEN = {0.0f, 1.0f, 0.0f};
 
   // Convert angle threshold to radians
   float angle_threshold = angle_threshold_deg * 3.1415 / 180;
 
   // Compute the dot product of g_BGRy and GREEN
-  float projection = -(g_BGRy[0] * GREEN[0] + 
-                       g_BGRy[1] * GREEN[1] + 
-                       g_BGRy[2] * GREEN[2]);
+  float projection = (g_BGRy[0] * GREEN[0] + 
+                      g_BGRy[1] * GREEN[1] + 
+                      g_BGRy[2] * GREEN[2]);
 
   // Compute the norms of g_BGRy and GREEN
   float norm_g = std::sqrt(g_BGRy[0] * g_BGRy[0] + 
                            g_BGRy[1] * g_BGRy[1] + 
                            g_BGRy[2] * g_BGRy[2]);
-  float norm_GREEN = std::sqrt(GREEN[0] * GREEN[0] + 
-                               GREEN[1] * GREEN[1] + 
-                               GREEN[2] * GREEN[2]);
 
   // Compute the angle between g_BGRy and GREEN
-  float proj_angle = std::acos(projection / (norm_g * norm_GREEN));
+  float proj_angle = std::acos(projection / norm_g);
 
   // Check if the pixel is a field boundary
   bool is_field_boundary = (projection > gradient_threshold && 
-                            std::abs(proj_angle) < angle_threshold);
+                            std::abs(proj_angle) < angle_threshold &&
+                            saliency > min_segment_length);
 
   return is_field_boundary;
 }
 
 bool checkMarkingClassification(upm::Gradient &g_BGR,
-                                 float gradient_threshold = 7575.37f, 
-                                 float angle_threshold_deg = 32.38f) {
+                                float saliency,
+                                float gradient_threshold = 10.0f, 
+                                float angle_threshold_deg = 29.43f,
+                                float min_segment_length = 104) {
     // Define the GREEN and WHITE vectors
-    cv::Vec3f GREEN = {0.0f, 255.0f, 0.0f}; // RGB for GREEN
-    cv::Vec3f WHITE = {255.0f, 255.0f, 255.0f}; // RGB for WHITE
+    cv::Vec3f GREEN = {0.0f, 1.0f, 0.0f}; // RGB for GREEN
+    cv::Vec3f WHITE = {1.0f, 1.0f, 1.0f}; // RGB for WHITE
 
     // Compute GREEN - WHITE
     cv::Vec3f GREEN_MINUS_WHITE = {
@@ -255,21 +256,22 @@ bool checkMarkingClassification(upm::Gradient &g_BGR,
     // Convert angle threshold to radians
     float angle_threshold = angle_threshold_deg * 3.1415 / 180;
 
+    float norm_GREEN_MINUS_WHITE = std::sqrt(GREEN_MINUS_WHITE[0] * GREEN_MINUS_WHITE[0] +
+                                             GREEN_MINUS_WHITE[1] * GREEN_MINUS_WHITE[1] +
+                                             GREEN_MINUS_WHITE[2] * GREEN_MINUS_WHITE[2]);
     // Compute the dot product of g_BGR and GREEN_MINUS_WHITE
-    float projection = g_BGR[0] * GREEN_MINUS_WHITE[0] +
-                       g_BGR[1] * GREEN_MINUS_WHITE[1] +
-                       g_BGR[2] * GREEN_MINUS_WHITE[2];
+    float projection = (g_BGR[0] * GREEN_MINUS_WHITE[0] +
+                        g_BGR[1] * GREEN_MINUS_WHITE[1] +
+                        g_BGR[2] * GREEN_MINUS_WHITE[2]) /
+                        norm_GREEN_MINUS_WHITE;
 
     // Compute the norms of g_BGR and GREEN_MINUS_WHITE
     float norm_g = std::sqrt(g_BGR[0] * g_BGR[0] + 
                              g_BGR[1] * g_BGR[1] + 
                              g_BGR[2] * g_BGR[2]);
-    float norm_GREEN_MINUS_WHITE = std::sqrt(GREEN_MINUS_WHITE[0] * GREEN_MINUS_WHITE[0] +
-                                             GREEN_MINUS_WHITE[1] * GREEN_MINUS_WHITE[1] +
-                                             GREEN_MINUS_WHITE[2] * GREEN_MINUS_WHITE[2]);
 
     // Compute the angle between g_BGR and GREEN_MINUS_WHITE
-    float proj_angle = std::acos(projection / (norm_g * norm_GREEN_MINUS_WHITE));
+    float proj_angle = std::acos(projection / norm_g);
 
     // Adjust the angle if it's greater than 90 degrees
     if (proj_angle > CV_PI / 2.0f) {
@@ -278,34 +280,32 @@ bool checkMarkingClassification(upm::Gradient &g_BGR,
 
     // Check if the pixel is a field marking
     bool is_field_marking = (std::abs(projection) > gradient_threshold &&
-                             std::abs(proj_angle) < angle_threshold);
+                             std::abs(proj_angle) < angle_threshold && 
+                             saliency > min_segment_length);
 
     return is_field_marking;
 }
 
-int isFieldFeature(upm::Gradient g_BGRx, upm::Gradient  g_BGRy) {
-    // Compute gradients
-    //auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
+int isFieldFeature(upm::Gradient g_BGRx, upm::Gradient  g_BGRy, float saliency, ELSEDParams params) {
 
     // Check boundary classification for g_BGRy
-    if (checkBoundaryClassification(g_BGRy)) return FIELD_BOUNDARY;
+    if (checkBoundaryClassification(g_BGRy, saliency, params.boundaryGradTh, params.boundaryAngleTh, params.boundaryMinLength)) return FIELD_BOUNDARY;
     // std::cout << "Boundary classification y-axis: " << std::boolalpha << is_boundary << std::endl;
 
     // Check marking classification for g_BGRy and g_BGRx
-    if (checkMarkingClassification(g_BGRy)) return FIELD_MARKING;
+    if (checkMarkingClassification(g_BGRy, saliency, params.markingGradTh, params.markingAngleTh, params.markingMinLength)) return FIELD_MARKING;
     // std::cout << "Marking classification x-axis: " << std::boolalpha << is_marking_y << std::endl;
 
     // Check marking classification for g_BGRy and g_BGRx
-    if (checkMarkingClassification(g_BGRx)) return FIELD_MARKING;
+    if (checkMarkingClassification(g_BGRx, saliency, params.markingGradTh, params.markingAngleTh, params.markingMinLength)) return FIELD_MARKING;
     // std::cout << "Marking classification y-axis: " << std::boolalpha << is_marking_x << std::endl;
 
-    return NOT_A_FIELD_LINE;
+    return NOT_A_FIELD_FEATURE;
 }
 
 inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
                                        const cv::Mat &gradImageWO,
                                        const cv::Mat &gradImage,
-                                       const cv::Mat &BGR_image,
                                        int scanInterval,
                                        int anchorThresh,
                                        std::vector<Pixel> &anchorPoints) {  // NOLINT
@@ -316,7 +316,6 @@ inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
   // Get pointers to the thresholded gradient image and to the direction image
   const auto *gradImg = gradImage.ptr<int16_t>();
   const auto *dirImg = dirImage.ptr<uint8_t>();
-  cv::Mat B, G, R;
 
   // Extract the anchors in the gradient image, store into a vector
   unsigned int pixelNum = imageWidth * imageHeight;
@@ -340,8 +339,6 @@ inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
         // We compare with the top and bottom pixel gradients
         if (gradImg[indexInArray] >= gradImg[indexInArray - imageWidth] + anchorThresh &&
             gradImg[indexInArray] >= gradImg[indexInArray + imageWidth] + anchorThresh) {
-          //if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
-          //if (!isFieldFeature(B, G, R)) continue;
           anchorPoints[nAnchors].x = w;
           anchorPoints[nAnchors].y = h;
           nAnchors++;
@@ -351,8 +348,6 @@ inline void ELSED::computeAnchorPoints(const cv::Mat &dirImage,
         // We compare with the left and right pixel gradients
         if (gradImg[indexInArray] >= gradImg[indexInArray - 1] + anchorThresh &&
             gradImg[indexInArray] >= gradImg[indexInArray + 1] + anchorThresh) {
-          //if (!extractWindowAndChannels(BGR_image, w, h, B, G, R)) continue;
-          //if (!isFieldFeature(B, G, R)) continue;
           anchorPoints[nAnchors].x = w;
           anchorPoints[nAnchors].y = h;
           nAnchors++;
@@ -418,8 +413,6 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
       // If anchor i is already been an edge pixel
       continue;
     }
-    //if (!extractWindowAndChannels(BGR_image, anchorPoint.x, anchorPoint.y, B, G, R)) continue;
-    //if (!isFieldFeature(B, G, R)) continue;
 
     // If the direction of this pixel is horizontal, then go left and right.
     expandHorizontally = dirImg[indexInArray] == UPM_EDGE_HORIZONTAL;
@@ -527,7 +520,6 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
           if (angle >= M_PI) angle -= M_PI;
           circularDist(theta, angle, M_PI) > validationTh ? nOriOutliers++ : nOriInliers++;
           
-          // Implement here a function to:
           // 1. Get the window around each px
           // 2. Sum the windows along the pixels and save the number of sums to make an average in the end
           if (!extractWindowAndChannels(BGR_image, px.x, px.y, B, G, R)) continue;
@@ -541,7 +533,6 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
           cv::add(R_sum, R, R_sum);
           segment_size++;
         }
-        // Implement here:
         // 1. B, G, R = average_window/N
         // 2. valid = isFieldFeature(B, G, R) && nOriInliers > nOriOutliers
         B = B_sum/segment_size;
@@ -561,7 +552,7 @@ void ELSED::drawAnchorPoints(const uint8_t *dirImg,
       const Segment &endpoints = detectedSeg.getEndpoints();
       auto [g_BGRx, g_BGRy] = computeGradientsBGR(B, G, R);
       //std::cout << "gradient x: " << g_BGRx << std::endl;
-      seg_classification = isFieldFeature(g_BGRx, g_BGRy);
+      seg_classification = isFieldFeature(g_BGRx, -g_BGRy, saliency, params);
       segments.push_back(endpoints);
       salientSegments.emplace_back(endpoints, saliency, seg_classification, g_BGRx, g_BGRy);
     }

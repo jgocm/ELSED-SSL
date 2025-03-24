@@ -37,3 +37,5 @@ cmake-build-*
 .ipynb_checkpoints/
 pyelsed.egg-info/
 /build/
+data/
+evaluation/
