@@ -74,13 +74,12 @@ def calculate_score(thresholds, train_data):
 
     return -(TP_count - FP_count)
 
-if __name__ == "__main__":
+def train_and_evaluate():
     # Define the bounds for the thresholds
     lb = [10, 20, 50]  # Lower bounds
     ub = [255, 70, 300]  # Upper bounds
 
     # Load dataset
-  # Load dataset
     configs = utils.load_config_file("configs.json")
     annotations_path = configs["paths"]["segments_annotations"]
     dataset_label = configs["dataset_label"]
@@ -88,7 +87,7 @@ if __name__ == "__main__":
 
     # Define the min, max percentages and the step for the train set
     min_percentage = 0.1
-    max_percentage = 0.5
+    max_percentage = 0.7
     step = 0.1
 
     # PSO parameters
@@ -118,7 +117,7 @@ if __name__ == "__main__":
         # Print the optimal thresholds and the corresponding score in the training set
         print(f'Train Size: {int(100*train_size)}% | Thresholds: {optimal_thresholds}  | Score: {-optimal_score}')
 
-        np.save(thresholds_path, optimal_thresholds)
+        #np.save(thresholds_path, optimal_thresholds)
         
     # Evaluate thresholds on the test set
     for idx, (train_size, thresholds) in enumerate(zip(train_sizes, thresholds_list)):
@@ -127,7 +126,8 @@ if __name__ == "__main__":
 
         print(f'Train Size {int(100*train_size)}%: Precision: {precision:.3f} | Recall: {recall:.3f} | TP: {TP_count} | FP: {FP_count} | FN: {FN_count} | total lines: {total_lines}')
 
-
-
+if __name__ == "__main__":
+    train_and_evaluate()
+    
 
 

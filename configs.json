@@ -1,11 +1,11 @@
 {
-    "dataset_label": "lines_15pm_lights_on_window_closed",
+    "dataset_label": "humanoid-nao",
     "paths":
     {
-        "images": "data/lines_15pm_lights_on_window_closed/images",
-        "marking_thresholds":"trainings/lines_15pm_lights_on_window_closed/marking_thresholds_40.npy",
-        "boundary_thresholds":"trainings/lines_15pm_lights_on_window_closed/boundary_thresholds_40.npy",
-        "segments_annotations":"trainings/lines_15pm_lights_on_window_closed/segments_annotations.csv",
-        "eval_images": "evaluation/lines_15pm_lights_on_window_closed/images"
+        "images": "data/humanoid-nao/images",
+        "marking_thresholds":"trainings/humanoid-nao/marking_thresholds_40.npy",
+        "boundary_thresholds":"trainings/humanoid-nao/boundary_thresholds_40.npy",
+        "segments_annotations":"trainings/humanoid-nao/segments_annotations.csv",
+        "eval_images": "evaluation/humanoid-nao/images"
     }
 }

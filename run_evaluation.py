@@ -1,6 +1,9 @@
+import pyelsed
+from elsed_analyzer import SegmentsAnalyzer
 import pandas as pd
-import utils
 import numpy as np
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 import os
 
 def merge_images_results(dataset_label):
@@ -36,8 +39,6 @@ def merge_images_results(dataset_label):
     df.to_csv(f'{results_path}/{filename}', mode='w', header=True, index=False)
 
     TP_count, FP_count, FN_count = total_row[1], total_row[2], total_row[3]
-    precision = TP_count/(TP_count + FP_count)
-    recall = TP_count/(TP_count + FN_count)
     return total_row
 
 def compute_all_results(dataset_labels):
@@ -64,17 +65,73 @@ def count_training_images(dataset_label):
    
     return nr_of_images
 
+def evaluate(marking_thresholds, boundary_thresholds, test_data):
+
+    analyzer = SegmentsAnalyzer(pyelsed, 
+                                marking_thresholds=marking_thresholds, 
+                                boundary_thresholds=boundary_thresholds)
+
+    precision, recall, TP_count, FP_count, FN_count = 0, 0, 0, 0, 0
+
+    for index, row in test_data.iterrows():
+        gx = np.array([row['grad_Bx'], row['grad_Gx'], row['grad_Rx']], dtype=np.float32)
+        gy = np.array([row['grad_By'], row['grad_Gy'], row['grad_Ry']], dtype=np.float32)
+        segment_length = row['segment_length']
+        is_field_marking_gt = row['is_field_marking']
+        is_field_boundary_gt = row['is_field_boundary']
+        
+        label = analyzer.classify(gx, -gy, segment_length)
+        
+        is_field_boundary = (label==1)
+        is_field_marking = (label==2)
+        
+        is_true_positive = (is_field_marking and is_field_marking_gt) or (is_field_boundary and is_field_boundary_gt)
+        is_false_positive = (is_field_marking and not is_field_marking_gt) or (is_field_boundary and not is_field_boundary_gt)
+        is_false_negative = (not is_field_marking and is_field_marking_gt) or (not is_field_boundary and is_field_boundary_gt)
+
+        
+        if is_true_positive:
+            TP_count += 1
+            
+        if is_false_positive: 
+            FP_count += 1
+
+        if is_false_negative: 
+            FN_count += 1
+
+        if TP_count+FP_count > 0:
+            precision = TP_count/(TP_count+FP_count)
+
+        if TP_count+FN_count > 0:
+            recall = TP_count/(TP_count+FN_count)
+        
+    return precision, recall, TP_count, FP_count, FN_count, len(test_data)
+
+def run_cross_evaluation(dataset_labels):
+    for thresholds_label in dataset_labels:
+        for dataset_label in dataset_labels:
+            # load csv
+            annotations_path = f"trainings/{dataset_label}/segments_annotations.csv"
+            df = pd.read_csv(annotations_path)
+            _, test_df = train_test_split(df, train_size=0.5, random_state=42)
+
+            # load thresholds
+            marking_thresholds_path = f"trainings/{thresholds_label}/marking_thresholds_30.npy"
+            boundary_thresholds_path = f"trainings/{thresholds_label}/boundary_thresholds_30.npy"
+            marking_thresholds = np.load(marking_thresholds_path)
+            boundary_thresholds = np.load(boundary_thresholds_path)
+
+            # run evaluation
+            result = evaluate(marking_thresholds, boundary_thresholds, test_df)
+            precision = result[0]
+            print(thresholds_label, dataset_label, precision)
+
 if __name__ == "__main__":
     dataset_labels = ['lines_15pm_lights_off_window_open',
                       'lines_15pm_lights_on_window_open',
-                      'lines_15pm_lights_on_window_closed',
-                      'humanoid-kid',
-                      'humanoid-nao']
+                      'lines_15pm_lights_on_window_closed']
     
-    compute_all_results(dataset_labels)
+    run_cross_evaluation(dataset_labels)
 
-    for dataset_label in dataset_labels:
 
-        nr_of_images = count_training_images(dataset_label)
-        #print(dataset_label, nr_of_images)
     

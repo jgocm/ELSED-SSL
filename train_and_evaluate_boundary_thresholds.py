@@ -118,7 +118,7 @@ if __name__ == "__main__":
         # Print the optimal thresholds and the corresponding score in the training set
         print(f'Train Size: {int(100*train_size)}% | Thresholds: {optimal_thresholds}  | Score: {-optimal_score}')
 
-        np.save(thresholds_path, optimal_thresholds)
+        #np.save(thresholds_path, optimal_thresholds)
 
 
     # Evaluate thresholds on the test set

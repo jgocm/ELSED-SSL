@@ -1,0 +1,6 @@
+dataset,precision,recall,nr of lines
+lines_15pm_lights_off_window_open,1.0,0.7371428571428571,175
+lines_15pm_lights_on_window_open,0.9943502824858758,0.9025641025641026,196
+lines_15pm_lights_on_window_closed,0.9872611464968153,0.8469945355191257,185
+humanoid-kid,1.0,0.45267489711934156,243
+humanoid-nao,0.875,0.6779661016949152,453
