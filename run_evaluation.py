@@ -76,5 +76,5 @@ if __name__ == "__main__":
     for dataset_label in dataset_labels:
 
         nr_of_images = count_training_images(dataset_label)
-        #print(dataset_label, nr_of_images)
+        print(dataset_label, nr_of_images)
     

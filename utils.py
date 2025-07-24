@@ -4,16 +4,6 @@ import json
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def get_img_from_selected_images(dataset_path, scenario, round, img_nr):
-    img_path = dataset_path + f'{scenario}_0{round}_{img_nr}_original.png'
-    if os.path.isfile(img_path):
-        img = cv2.imread(img_path)
-    else:
-        print(f'Img {img_path} not available')
-        img = None
-
-    return img, img_path
-
 def load_paths_from_config_file(config_path):
     """
     Load a JSON configuration file.

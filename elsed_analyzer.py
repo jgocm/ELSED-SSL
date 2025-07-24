@@ -170,29 +170,6 @@ class SegmentsAnalyzer():
         
         return g_BGRx, g_BGRy
 
-    def get_img_from_dataset(self, dataset_path='/home/rc-blackout/ssl-navigation-dataset', scenario='rnd', round=2, img_nr=100, gray_scale=False):
-        img_path = f"{dataset_path}/data/{scenario}_0{round}/cam/{img_nr}.png"
-        if os.path.isfile(img_path):
-            if gray_scale:
-                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-            else:
-                img = cv2.imread(img_path)
-        else:
-            print(f'Img {img_path} not available')
-            img = None
-            
-        return img, img_path
-        
-    def get_random_img_from_dataset(self, dataset_path, scenarios, rounds, max_img_nr):
-        img = None
-        while img is None:
-            scenario = random.choice(scenarios)
-            round = random.randint(1, rounds)
-            img_nr = random.randint(0, max_img_nr)
-            img, img_path = self.get_img_from_dataset(dataset_path, scenario, round, img_nr, False)
-        
-        return img, img_path, [scenario, round, img_nr]
-
     def get_grad_similarity(self, grad, color1, color2):
         color_transition = color2-color1
         projection = np.dot(grad, color_transition)
@@ -235,61 +212,6 @@ class SegmentsAnalyzer():
                             l>min_segment_length)
         return is_field_marking
 
-def test_on_random_image_from_dataset():
-    dataset_path = '/home/joao-dt/ssl-navigation-dataset'
-    scenarios = ['rnd', 'sqr', 'igs']
-    rounds = 3
-    max_img_nr = 2000
-
-    boundary_thresholds_path = 'annotations/optimal_boundary_thresholds.npy'
-    marking_thresholds_path = 'annotations/optimal_marking_thresholds.npy'
-    
-    boundary_thresholds = np.load(boundary_thresholds_path)
-    #print(boundary_thresholds)
-    marking_thresholds = np.load(marking_thresholds_path)
-    #print(marking_thresholds)
-
-    boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
-    marking_grad_th,  marking_angle_threshold_deg,  marking_min_seg_len  = marking_thresholds
-
-    analyzer = SegmentsAnalyzer(pyelsed)
-
-    while True:
-        original_img, img_path, img_details = analyzer.get_random_img_from_dataset(dataset_path, scenarios, rounds, max_img_nr)
-        gs_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
-        gs_img = cv2.cvtColor(gs_img, cv2.COLOR_GRAY2BGR)
-        dbg_img = original_img.copy()
-        print(f"Img: {img_path}")
-    
-        segments, scores, labels, grads_x, grads_y = analyzer.detect(original_img)
-
-        for s, score, label, grad_x, grad_y in zip(segments.astype(np.int32), scores, labels, grads_x, grads_y):
-            line_points = analyzer.get_bresenham_line_points(s)
-
-            label_test = analyzer.classify(grad_x, -grad_y, score)
-            
-            is_field_boundary = (label==1)
-            is_field_marking = (label==2)
-
-            for p in line_points:
-                x, y = p
-                gs_img[y, x] = analyzer.RED
-                
-                if is_field_marking:
-                    dbg_img[y, x] = analyzer.RED
-                elif is_field_boundary:
-                    dbg_img[y, x] = analyzer.GREEN                    
-                else:
-                    dbg_img[y, x] = analyzer.BLACK
-
-        cv2.imshow('elsed', gs_img)
-        cv2.imshow('elsed-ssl', dbg_img)
-        
-        key = cv2.waitKey(0) & 0xFF
-
-        if key==ord('q'):
-            quit()
-
 def test_with_annotations():
     import pandas as pd
 
@@ -304,9 +226,6 @@ def test_with_annotations():
     marking_thresholds = np.load(marking_thresholds_path)
     print(boundary_thresholds)
     print(marking_thresholds)
-
-    boundary_grad_th, boundary_angle_threshold_deg, boundary_min_seg_len = boundary_thresholds
-    marking_grad_th,  marking_angle_threshold_deg,  marking_min_seg_len  = marking_thresholds
 
     analyzer = SegmentsAnalyzer(pyelsed, boundary_thresholds, marking_thresholds)
 
@@ -354,8 +273,6 @@ def test_with_annotations():
             quit()
 
 def test_with_images_from_folder():
-    import pandas as pd
-
     paths = utils.load_paths_from_config_file("configs.json")
     images_path = paths["images"]
     boundary_thresholds_path = paths['boundary_thresholds']
@@ -391,7 +308,17 @@ def test_with_images_from_folder():
             elif is_field_boundary:
                 cv2.line(dbg_img, s[:2], s[2:], analyzer.GREEN.tolist(), 2)
 
-            cv2.line(gs_img, s[:2], s[2:], analyzer.RED.tolist(), 2)           
+            cv2.line(gs_img, s[:2], s[2:], analyzer.RED.tolist(), 2)    
+
+        # write white texts with black borders
+        cv2.putText(original_img, 'ORIGINAL', (250, 25), 1, 2, (0, 0, 0), 4)
+        cv2.putText(original_img, 'ORIGINAL', (250, 25), 1, 2, (255, 255, 255), 2)
+
+        cv2.putText(gs_img, 'ALL LINES', (250, 25), 1, 2, (0, 0, 0), 4)
+        cv2.putText(gs_img, 'ALL LINES', (250, 25), 1, 2, (255, 255, 255), 2)
+
+        cv2.putText(dbg_img, 'FIELD LINES', (250, 25), 1, 2, (0, 0, 0), 4)
+        cv2.putText(dbg_img, 'FIELD LINES', (250, 25), 1, 2, (255, 255, 255), 2)
 
         concatenated_image = np.hstack((original_img, gs_img, dbg_img))
 
