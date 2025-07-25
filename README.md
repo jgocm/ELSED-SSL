@@ -41,12 +41,49 @@ cv2.destroyAllWindows()
 
 Note that, the default thresholds in the [SegmentsAnalyzer](https://github.com/jgocm/ELSED-SSL/blob/7ad8fd7f30dbffbc468e7423627862db6ea3e17d/elsed_analyzer.py#L9) class are adjusted for our soccer field. To apply ELSED+GC to a new envinroment, the thresholds should be readjusted accordingly. This adjusment can be done manually or by following our thresholds training pipeline.
 
+## Available Datasets and Thresholds (TO DO)
+
 ## Thresholds Training Pipeline
 The procedure to adjust thresholds to a new soccer field consists of 4 main steps:
 1. Collecting images
-2. Annotating line segments labels
+2. Annotating training data
 3. Traning thresholds with PSO
 4. Loading thresholds from the numpy file
+
+### Collecting images
+Take pictures of your environment from multiple perspectives to ensure all the lines were seen by different points of view.
+
+Another way to collect it is by recording a video from the robot's camera and extracting frames from it. The [select_frames_from_video.py](https://github.com/jgocm/ELSED-SSL/blob/62eccad56d3c2046fa6a192f25bea43ca581923f/select_frames_from_video.py) script helps saving frames from a video.
+
+### Annotating training data
+[annotate_trainings.py](https://github.com/jgocm/ELSED-SSL/blob/62eccad56d3c2046fa6a192f25bea43ca581923f/annotate_trainings.py)
+
+### Training with PSO
+[train_and_evaluate_marking_thresholds.py](https://github.com/jgocm/ELSED-SSL/blob/62eccad56d3c2046fa6a192f25bea43ca581923f/train_and_evaluate_marking_thresholds.py)
+
+### Loading thresholds
+```python
+import cv2
+import numpy as np
+from elsed_analyzer import SegmentsAnalyzer
+
+PATH_TO_THRESHOLDS = 'trainings/humanoid-kid/marking_thresholds_40.npy'
+markings_thresholds = np.load(PATH_TO_THRESHOLDS)
+
+analyzer = SegmentsAnalyzer(marking_thresholds=markings_thresholds, 
+                            draw_on_frames=True)
+
+img_path = 'images/test_image.jpg'
+
+img = cv2.imread(img_path)
+
+analyzer.detect(img)
+
+cv2.imshow('detections', img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+```
 
 ## Cite
 
