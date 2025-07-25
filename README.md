@@ -43,6 +43,7 @@ Note that, the default thresholds in the [SegmentsAnalyzer](https://github.com/j
 
 ## Available Datasets and Thresholds (TO DO)
 
+
 ## Thresholds Training Pipeline
 The procedure to adjust thresholds to a new soccer field consists of 4 main steps:
 1. Collecting images
@@ -56,10 +57,31 @@ Take pictures of your environment from multiple perspectives to ensure all the l
 Another way to collect it is by recording a video from the robot's camera and extracting frames from it. The [select_frames_from_video.py](https://github.com/jgocm/ELSED-SSL/blob/62eccad56d3c2046fa6a192f25bea43ca581923f/select_frames_from_video.py) script helps saving frames from a video.
 
 ### Annotating training data
-[annotate_trainings.py](https://github.com/jgocm/ELSED-SSL/blob/62eccad56d3c2046fa6a192f25bea43ca581923f/annotate_trainings.py)
+The [annotate_trainings.py](https://github.com/jgocm/ELSED-SSL/blob/62eccad56d3c2046fa6a192f25bea43ca581923f/annotate_trainings.py) script loads all images from a given folder, runs ELSED to detect all line segments on it, and lets the user annotate the segments' labels manually one by one, for each image. Each segment can be labeled as: 'is_field_boundary', 'is_field_marking', or 'is_not_a_field_feature'.
+
+These annotations are saved in a .csv file that contains the following information about each line segment:
+- image path
+- coordinates of the endpoints
+- horizontal and vertical BGR gradients
+- segment length
+- ground truth label
+
+The script provides the following keyboard commands for the user to make the annotations:
+- q: quits without saving
+- s: skips the current image and saves the current annotations to the csv file
+- r: removes the last annotation
+- d: skip/discard the current line segment
+- b: annotate the current line segment as a field boundary
+- m: annotate the current line segment as a field marking
+
+Saving the annotations will append them to the current csv file, which allows the user to stop annotating before finishing all the images and continue later on.
 
 ### Training with PSO
-[train_and_evaluate_marking_thresholds.py](https://github.com/jgocm/ELSED-SSL/blob/62eccad56d3c2046fa6a192f25bea43ca581923f/train_and_evaluate_marking_thresholds.py)
+The [train_and_evaluate_marking_thresholds.py](https://github.com/jgocm/ELSED-SSL/blob/62eccad56d3c2046fa6a192f25bea43ca581923f/train_and_evaluate_marking_thresholds.py) script runs a PSO to try to find the best thresholds for the given annotations file. It is set to run multiple trainings with different percentages of the training data. It saves the resulting thresholds for each training and, at the end, runs them on a test set to evaluate their performances.
+
+Thresholds files are saved in .npy format and can be loaded with a simple ```np.load(PATH_TO_FILE)```.
+
+Note that there are two scripts for training thresholds, one for field markings and another for field boundaries. The markings are classified based on a similarity to a green-to-white transition (colors of the field lines and the field itself), while the boundaries compute similarities to a green-to-black transition (the color transition for boundaries in the Small Size League field). Therefore, gradient classification for boundaries might not work in fields that have other colors in their borders.
 
 ### Loading thresholds
 ```python
