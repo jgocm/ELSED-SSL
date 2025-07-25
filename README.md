@@ -41,8 +41,10 @@ cv2.destroyAllWindows()
 
 Note that, the default thresholds in the [SegmentsAnalyzer](https://github.com/jgocm/ELSED-SSL/blob/7ad8fd7f30dbffbc468e7423627862db6ea3e17d/elsed_analyzer.py#L9) class are adjusted for our soccer field. To apply ELSED+GC to a new envinroment, the thresholds should be readjusted accordingly. This adjusment can be done manually or by following our thresholds training pipeline.
 
-## Available Datasets and Thresholds (TO DO)
+## Available Datasets and Thresholds
+The images and videos used for training and evaluating the method are available at [Google Drive](https://drive.google.com/drive/folders/1ntPPIz5eqTj6AFR60xy9qQ4e3coMJeiv?usp=sharing). 
 
+The annotations and trained thresholds for theses datasets can be found in the [trainings](https://github.com/jgocm/ELSED-SSL/tree/b7d4ce0e03af625812a095833a1403e2bbf5e0e6/trainings) folder.
 
 ## Thresholds Training Pipeline
 The procedure to adjust thresholds to a new soccer field consists of 4 main steps:
