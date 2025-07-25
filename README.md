@@ -1,73 +1,59 @@
-![Graffter Banner](images/banner.jpg)
-# ELSED: Enhanced Line SEgment Drawing
+# ELSED+GC: Enhanced Line SEgment Drawing + Gradient Classification for Soccer Field Lines Detection
 
+This repository adds a gradient classification to the [**ELSED: Enhanced Line SEgment Drawing**](https://doi.org/10.1016/j.patcog.2022.108619) algorithm, which allows us to classify line segments based on their color transitions in the RGB color space. Our implementation aims at classifying if the detected line segments belong to a soccer field or not, but it can be modified to address other types of line segments.
 
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/iago-suarez/ELSED/blob/main/Python_ELSED.ipynb) [![arXiv](https://img.shields.io/badge/arXiv-2108.03144-b31b1b.svg?style=plastic)](https://arxiv.org/abs/2108.03144)  [![Project Page](https://badgen.net/badge/color/project/green?icon=awesome&label)](https://iago-suarez.com/ELSED)
+![Result example image](images/result.png)
 
+## Dependencies (TO DO)
 
-This repository contains the source code of [**ELSED: Enhanced Line SEgment Drawing**](https://doi.org/10.1016/j.patcog.2022.108619) the fastest line segment detector in the literature. It is ideal for resource-limited devices like drones of smartphones. Visit the [**Project Webpage**](https://iago-suarez.com/ELSED) to try it online!
+## Running
 
-![Graffter header image](images/header.jpg)
+### Compiling ELSED
 
-## Dependencies
-The code depends on OpenCV (tested with version 4.1.1).
-<details> 
-<summary>To install OpenCV ... </summary> In Ubuntu 18.04 compile it from sources with the following instructions:
-
-```shell script
-# Install dependencies (Ubuntu 18.04)
-sudo apt-get install -y build-essential cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
-# Download source code
-git clone https://github.com/opencv/opencv.git --branch 4.1.1 --depth 1
-# Create build directory
-cd opencv && mkdir build && cd build
-# Generate makefiles, compile and install
-cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local ..
-make -j
-sudo make install
-```
-</details>
-
-### Using ELSED from python
-
-To install the python wrappers you just have to run:
-```
-sudo apt-get install libopencv-dev
-pip install setuptools
-pip install git+https://github.com/iago-suarez/ELSED.git
-```
-
-And you can start playing with it:
-```python
-import pyelsed
-import cv2
-
-img = cv2.imread('my_favourite_img.jpg', cv2.IMREAD_GRAYSCALE)
-segments, scores = pyelsed.detect(img)
-```
-
-### Using ELSED from C++
-
-The code contains a demo detecting large and short line segments in one image.
 The code can be compiled with Cmake:
 
 ```shell script
 mkdir build && cd build
 cmake .. && make
-./elsed_main
 ```
 
-The result for the provided image should be:
-```
-******************************************************
-******************* ELSED main demo ******************
-******************************************************
-ELSED detected: 305 (large) segments
-ELSED detected: 391 (short) segments
+
+### Using ELSED+GC from python
+
+Here is an example code on how to run ELSED+GC in a single image and highlight lines classification on screen. Lines classified as "not a field feature" are painted in black.
+
+```python
+import cv2
+from elsed_analyzer import SegmentsAnalyzer
+
+analyzer = SegmentsAnalyzer(draw_on_frames=True)
+
+img_path = 'images/test_image.jpg'
+
+img = cv2.imread(img_path)
+
+analyzer.detect(img)
+
+cv2.imshow('detections', img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 ```
 
-### Cite
+Note that, the default thresholds in the [SegmentsAnalyzer](https://github.com/jgocm/ELSED-SSL/blob/7ad8fd7f30dbffbc468e7423627862db6ea3e17d/elsed_analyzer.py#L9) class are adjusted for our soccer field. To apply ELSED+GC to a new envinroment, the thresholds should be readjusted accordingly. This adjusment can be done manually or by following our thresholds training pipeline.
 
+## Thresholds Training Pipeline
+The procedure to adjust thresholds to a new soccer field consists of 4 main steps:
+1. Collecting images
+2. Annotating line segments labels
+3. Traning thresholds with PSO
+4. Loading thresholds from the numpy file
+
+## Cite
+
+### Efficient Lines Detection for Robot Soccer 
+Published at RoboCup 2025, still no DOI available
+
+### [**ELSED: Enhanced Line SEgment Drawing**](https://doi.org/10.1016/j.patcog.2022.108619)
 ```bibtex
 @article{suarez2022elsed,
       title={ELSED: Enhanced Line SEgment Drawing}, 
