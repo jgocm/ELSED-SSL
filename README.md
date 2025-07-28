@@ -111,8 +111,20 @@ cv2.destroyAllWindows()
 
 ## Cite
 
-### Efficient Lines Detection for Robot Soccer 
-Published at RoboCup 2025, still no DOI available
+### [**Efficient Lines Detection for Robot Soccer**](https://arxiv.org/abs/2507.19469)
+Published at RoboCup 2025, only available at arXiv for now
+```bibtex
+@misc{melo2025efficientlinesdetectionrobot,
+      title={Efficient Lines Detection for Robot Soccer}, 
+      author={João G. Melo and João P. Mafaldo and Edna Barros},
+      year={2025},
+      eprint={2507.19469},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2507.19469}, 
+}
+```
+
 
 ### [**ELSED: Enhanced Line SEgment Drawing**](https://doi.org/10.1016/j.patcog.2022.108619)
 ```bibtex
